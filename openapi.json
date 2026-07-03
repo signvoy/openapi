@@ -1,0 +1,3977 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "description": "Returns the API health status and current timestamp",
+        "operationId": "Health_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "API is healthy and operational",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "ok",
+                      "description": "Health status"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "Current server timestamp in ISO format"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "summary": "Health check",
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/v1/workspaces": {
+      "get": {
+        "description": "Retrieves all workspaces the user has access to. Automatically provisions personal workspace if needed.",
+        "operationId": "Workspaces_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of workspaces retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "List workspaces",
+        "tags": [
+          "Workspaces"
+        ]
+      },
+      "post": {
+        "description": "Creates a team workspace for collaborative document management",
+        "operationId": "Workspaces_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWorkspaceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Workspace created successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Create a new workspace",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{id}": {
+      "get": {
+        "description": "Retrieves detailed information about a specific workspace",
+        "operationId": "Workspaces_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workspace retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not a member of this workspace"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Get workspace by ID",
+        "tags": [
+          "Workspaces"
+        ]
+      },
+      "patch": {
+        "description": "Updates workspace name (owner/admin only)",
+        "operationId": "Workspaces_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWorkspaceDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Workspace updated successfully"
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Update workspace",
+        "tags": [
+          "Workspaces"
+        ]
+      },
+      "delete": {
+        "description": "Permanently deletes a workspace (owner only)",
+        "operationId": "Workspaces_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Workspace deleted successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Only owner can delete workspace"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Delete workspace",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{id}/members": {
+      "get": {
+        "description": "Retrieves all active members of a workspace",
+        "operationId": "Workspaces_listMembers",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not a member of this workspace"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "List workspace members",
+        "tags": [
+          "Workspaces"
+        ]
+      },
+      "post": {
+        "description": "Sends an invitation to join the workspace (owner/admin only)",
+        "operationId": "Workspaces_invite",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteMemberDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Invitation sent successfully"
+          },
+          "400": {
+            "description": "Invalid email or user already a member"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Invite member to workspace",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{id}/invitations": {
+      "get": {
+        "description": "Retrieves all pending invitations for a workspace",
+        "operationId": "Workspaces_listInvitations",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of invitations retrieved successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not a member of this workspace"
+          },
+          "404": {
+            "description": "Workspace not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "List pending invitations",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{id}/members/{userId}": {
+      "patch": {
+        "description": "Changes a member's role in the workspace (owner/admin only)",
+        "operationId": "Workspaces_updateMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "User ID of the member to update",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member role updated successfully"
+          },
+          "400": {
+            "description": "Invalid role or cannot modify owner"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          },
+          "404": {
+            "description": "Workspace or member not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Update member role",
+        "tags": [
+          "Workspaces"
+        ]
+      },
+      "delete": {
+        "description": "Removes a member from the workspace (owner/admin only)",
+        "operationId": "Workspaces_removeMember",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "User ID of the member to remove",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Member removed successfully"
+          },
+          "400": {
+            "description": "Cannot remove workspace owner"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          },
+          "404": {
+            "description": "Workspace or member not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Remove member from workspace",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/v1/workspaces/{id}/invitations/{invitationId}": {
+      "delete": {
+        "description": "Cancels a pending workspace invitation (owner/admin only)",
+        "operationId": "Workspaces_revokeInvitation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "description": "Invitation UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Invitation revoked successfully"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          },
+          "404": {
+            "description": "Workspace or invitation not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Revoke invitation",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/draft": {
+      "get": {
+        "description": "Returns the current draft version's content, or 200 with `null` if none exists.",
+        "operationId": "TemplateVersions_getDraft",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft retrieved (or null)."
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Get current draft version",
+        "tags": [
+          "Template Versions"
+        ]
+      },
+      "patch": {
+        "description": "Writes the full version content. Always allowed; returns engine diagnostics for the editor to render (warning-tolerant).",
+        "operationId": "TemplateVersions_upsertDraft",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Upsert draft content",
+        "tags": [
+          "Template Versions"
+        ]
+      },
+      "delete": {
+        "operationId": "TemplateVersions_discardDraft",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Discard the current draft",
+        "tags": [
+          "Template Versions"
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/draft/ensure": {
+      "post": {
+        "operationId": "TemplateVersions_ensureDraft",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Lazily create a draft from the published version (or empty)",
+        "tags": [
+          "Template Versions"
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/draft/publish": {
+      "post": {
+        "description": "Strict engine validation gate. Returns the published version; or throws RuleEngineException with structured diagnostics.",
+        "operationId": "TemplateVersions_publish",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Publish the draft",
+        "tags": [
+          "Template Versions"
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/versions": {
+      "get": {
+        "operationId": "TemplateVersions_listVersions",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "List all published + draft versions",
+        "tags": [
+          "Template Versions"
+        ]
+      }
+    },
+    "/v1/templates/{templateId}/versions/{versionId}": {
+      "get": {
+        "operationId": "TemplateVersions_findOne",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "versionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Get a specific version (read-only)",
+        "tags": [
+          "Template Versions"
+        ]
+      }
+    },
+    "/v1/templates": {
+      "post": {
+        "description": "Reserves a template id and the initial draft version, plus a presigned URL the browser uses to upload the source PDF directly.",
+        "operationId": "Templates_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTemplateResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create a new template",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "get": {
+        "operationId": "Templates_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter templates by status",
+            "schema": {
+              "example": "active",
+              "type": "string",
+              "enum": [
+                "active",
+                "archived",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateWithVersionsDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List templates in the workspace",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/v1/templates/{id}": {
+      "get": {
+        "description": "Returns the lightweight template row bundled with its current draft + published version (when each exists).",
+        "operationId": "Templates_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateWithVersionsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get template by id",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "patch": {
+        "operationId": "Templates_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateWithVersionsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Update template metadata (name only)",
+        "tags": [
+          "Templates"
+        ]
+      },
+      "delete": {
+        "operationId": "Templates_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Delete template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/v1/templates/{id}/pdf": {
+      "get": {
+        "operationId": "Templates_getPdfUrl",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateUrlResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get a presigned PDF URL for the latest version",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/v1/templates/{id}/archive": {
+      "post": {
+        "operationId": "Templates_archive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateWithVersionsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Archive template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/v1/templates/{id}/unarchive": {
+      "post": {
+        "operationId": "Templates_unarchive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateWithVersionsDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Unarchive template",
+        "tags": [
+          "Templates"
+        ]
+      }
+    },
+    "/v1/documents": {
+      "post": {
+        "description": "Creates a document from a template with recipients for signing",
+        "operationId": "Documents_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create a new document",
+        "tags": [
+          "Documents"
+        ]
+      },
+      "get": {
+        "description": "Retrieves all documents in the workspace with optional filtering by status, template, or search query",
+        "operationId": "Documents_list",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by document status",
+            "schema": {
+              "example": "sent",
+              "type": "string",
+              "enum": [
+                "draft",
+                "sent",
+                "in_progress",
+                "completed",
+                "declined",
+                "voided",
+                "expired"
+              ]
+            }
+          },
+          {
+            "name": "templateId",
+            "required": false,
+            "in": "query",
+            "description": "Filter by template UUID",
+            "schema": {
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000",
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Search query for document name, recipient name, or email",
+            "schema": {
+              "example": "john",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of documents retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List documents",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/v1/documents/{id}": {
+      "get": {
+        "description": "Retrieves detailed information about a specific document",
+        "operationId": "Documents_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get document by ID",
+        "tags": [
+          "Documents"
+        ]
+      },
+      "patch": {
+        "description": "Updates document details (only allowed in draft state)",
+        "operationId": "Documents_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateDocumentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or document not in draft state"
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Update document",
+        "tags": [
+          "Documents"
+        ]
+      },
+      "delete": {
+        "description": "Permanently deletes a document",
+        "operationId": "Documents_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Document deleted"
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Delete document",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/v1/documents/{id}/send": {
+      "post": {
+        "description": "Sends the document to recipients and transitions it to 'sent' state",
+        "operationId": "Documents_send",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Document not in valid state for sending"
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Send document for signing",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/v1/documents/{id}/void": {
+      "post": {
+        "description": "Cancels the document and prevents further signing",
+        "operationId": "Documents_voidDoc",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Document cannot be voided in current state"
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Void document",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/v1/documents/{id}/signed-pdf": {
+      "get": {
+        "description": "Retrieves a presigned URL to download the completed signed PDF",
+        "operationId": "Documents_signedPdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UrlResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document not found or not completed"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get signed PDF URL",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/v1/documents/{id}/certificate": {
+      "get": {
+        "description": "Retrieves a presigned URL to download the standalone certificate of completion",
+        "operationId": "Documents_certificate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UrlResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document or certificate not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get certificate of completion URL",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/v1/documents/{id}/audit": {
+      "get": {
+        "description": "Returns the ordered chain-of-custody events (sent, viewed, signed, declined, etc.) for the document",
+        "operationId": "Documents_audit",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuditEventDto"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get document audit trail",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
+    "/v1/submissions": {
+      "get": {
+        "description": "Retrieves all recipient submissions for a specific document including their signature data",
+        "operationId": "Submissions_list",
+        "parameters": [
+          {
+            "name": "documentId",
+            "required": true,
+            "in": "query",
+            "description": "Document UUID to get submissions for",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of submissions retrieved successfully"
+          },
+          "400": {
+            "description": "Missing or invalid documentId"
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing JWT token"
+          },
+          "403": {
+            "description": "Forbidden - Not authorized to view this document"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List submissions for a document",
+        "tags": [
+          "Submissions"
+        ]
+      }
+    },
+    "/v1/sign/{token}": {
+      "get": {
+        "description": "Retrieves document and field information for a recipient using their signing token",
+        "operationId": "Signing_getContext",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "Unique signing token sent to recipient",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signing context retrieved successfully"
+          },
+          "401": {
+            "description": "Invalid or expired signing token"
+          },
+          "404": {
+            "description": "Document or recipient not found"
+          }
+        },
+        "summary": "Get signing context",
+        "tags": [
+          "Signing"
+        ]
+      }
+    },
+    "/v1/sign/{token}/draft": {
+      "get": {
+        "description": "Retrieves previously saved draft values for the recipient",
+        "operationId": "Signing_getDraft",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "Unique signing token sent to recipient",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft retrieved successfully"
+          },
+          "204": {
+            "description": "No draft exists"
+          },
+          "401": {
+            "description": "Invalid or expired signing token"
+          }
+        },
+        "summary": "Get saved draft",
+        "tags": [
+          "Signing"
+        ]
+      },
+      "post": {
+        "description": "Saves recipient's progress without submitting the document",
+        "operationId": "Signing_saveDraft",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "Unique signing token sent to recipient",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Draft saved successfully"
+          },
+          "400": {
+            "description": "Invalid field values"
+          },
+          "401": {
+            "description": "Invalid or expired signing token"
+          }
+        },
+        "summary": "Save draft",
+        "tags": [
+          "Signing"
+        ]
+      }
+    },
+    "/v1/sign/{token}/submit": {
+      "post": {
+        "description": "Submits the completed document with recipient's signatures and data",
+        "operationId": "Signing_submit",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "Unique signing token sent to recipient",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitSigningDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document submitted successfully"
+          },
+          "400": {
+            "description": "Invalid or incomplete field values"
+          },
+          "401": {
+            "description": "Invalid or expired signing token"
+          },
+          "409": {
+            "description": "Document already submitted or in invalid state"
+          }
+        },
+        "summary": "Submit signature",
+        "tags": [
+          "Signing"
+        ]
+      }
+    },
+    "/v1/sign/{token}/decline": {
+      "post": {
+        "description": "Allows recipient to decline signing the document with a reason",
+        "operationId": "Signing_decline",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "Unique signing token sent to recipient",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeclineDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Document declined successfully"
+          },
+          "400": {
+            "description": "Invalid decline reason or document already processed"
+          },
+          "401": {
+            "description": "Invalid or expired signing token"
+          }
+        },
+        "summary": "Decline to sign",
+        "tags": [
+          "Signing"
+        ]
+      }
+    },
+    "/v1/template-gallery": {
+      "get": {
+        "description": "Returns the curated gallery catalog. Optionally filter by category.",
+        "operationId": "TemplateGallery_list",
+        "parameters": [
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "List gallery templates",
+        "tags": [
+          "Template Gallery"
+        ]
+      }
+    },
+    "/v1/template-gallery/{slug}": {
+      "get": {
+        "description": "Includes a short-lived presigned PDF preview URL.",
+        "operationId": "TemplateGallery_findOne",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Gallery template with preview URL."
+          },
+          "404": {
+            "description": "Not found."
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Get a single gallery template",
+        "tags": [
+          "Template Gallery"
+        ]
+      }
+    },
+    "/v1/template-gallery/{slug}/instantiate": {
+      "post": {
+        "description": "Clones the gallery template (PDF + content) into a new workspace template. Use mode=\"customize\" to open the editor, or mode=\"send\" to auto-publish and send immediately.",
+        "operationId": "TemplateGallery_instantiate",
+        "parameters": [
+          {
+            "name": "slug",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstantiateGalleryTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "New workspace template created."
+          },
+          "403": {
+            "description": "Plan tier does not allow this template."
+          },
+          "404": {
+            "description": "Gallery template not found."
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Instantiate a gallery template into the workspace",
+        "tags": [
+          "Template Gallery"
+        ]
+      }
+    },
+    "/v1/ai/templates/generate": {
+      "post": {
+        "description": "Uses an LLM to design recipients, fields, conditional rules, and a backing PDF from your description. Returns a draft template ready to customize in the editor.",
+        "operationId": "AiTemplate_generate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateTemplateDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft template created."
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Generate a template from a natural-language prompt",
+        "tags": [
+          "AI Templates"
+        ]
+      }
+    },
+    "/v1/ai/templates/detect-fields": {
+      "post": {
+        "description": "Analyses the uploaded PDF and returns a suggested TemplateVersionContent (recipients, fields with coordinates, conditional rules). The caller applies the suggestions through the editor (supports undo/redo via the Zustand store).",
+        "operationId": "AiTemplate_detectFields",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DetectFieldsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Suggested content returned."
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Detect fields on an already-uploaded PDF draft",
+        "tags": [
+          "AI Templates"
+        ]
+      }
+    },
+    "/v1/ai/templates/{templateId}/edit": {
+      "post": {
+        "description": "Loads the current draft content, applies the instruction via LLM, validates the result with the rules engine, and returns the proposed updated content + a diff summary. The client applies the changes through the Zustand editor store so undo/redo still works.",
+        "operationId": "AiTemplate_editDraft",
+        "parameters": [
+          {
+            "name": "templateId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditDraftDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated content + summary returned."
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Edit an existing draft template with a natural-language instruction",
+        "tags": [
+          "AI Templates"
+        ]
+      }
+    },
+    "/v1/webhooks": {
+      "post": {
+        "description": "Register a new HTTPS endpoint. The signing secret is returned **once** in this response and will not be shown again — store it securely.",
+        "operationId": "Webhooks_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Endpoint created — includes signing secret (shown once)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointWithSecretDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create a webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "get": {
+        "operationId": "Webhooks_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of endpoints (secrets omitted)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookEndpointDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List webhook endpoints for the workspace",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhooks/{id}": {
+      "get": {
+        "operationId": "Webhooks_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get a single webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "patch": {
+        "operationId": "Webhooks_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Update a webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "delete": {
+        "operationId": "Webhooks_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Delete a webhook endpoint",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhooks/{id}/ping": {
+      "post": {
+        "description": "Sends a `webhook.test` event to verify the endpoint is reachable. Returns the delivery result.",
+        "operationId": "Webhooks_ping",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Send a test event",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhooks/{id}/rotate-secret": {
+      "post": {
+        "description": "Issues a new HMAC secret for the endpoint. The new secret is returned **once** — update your server immediately. All future deliveries will use the new secret.",
+        "operationId": "Webhooks_rotateSecret",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New secret (shown once)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookEndpointWithSecretDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Rotate the signing secret",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhooks/{id}/deliveries": {
+      "get": {
+        "description": "Returns the 50 most recent delivery attempts.",
+        "operationId": "Webhooks_listDeliveries",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebhookDeliveryDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List recent deliveries for an endpoint",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/webhooks/{id}/deliveries/{deliveryId}/retry": {
+      "post": {
+        "description": "Resets the delivery to `pending` and immediately re-attempts it. The original payload and `Signvoy-Event-Id` are preserved so receivers can deduplicate.",
+        "operationId": "Webhooks_retryDelivery",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Webhook endpoint ID",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "required": true,
+            "in": "path",
+            "description": "Delivery ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookDeliveryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Manually retry a failed delivery",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/v1/api-keys": {
+      "post": {
+        "description": "Creates a new secret API key scoped to this workspace. The plaintext key is returned **once** in this response and cannot be retrieved again — store it securely.",
+        "operationId": "ApiKeys_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApiKeyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Key created (includes the plaintext secret, shown once)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedApiKeyDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a workspace owner or admin"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Create an API key",
+        "tags": [
+          "API Keys"
+        ]
+      },
+      "get": {
+        "description": "Returns all API keys for the workspace. Secrets are never included — only the prefix and last 4 characters.",
+        "operationId": "ApiKeys_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "List of API keys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKeyDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "List API keys",
+        "tags": [
+          "API Keys"
+        ]
+      }
+    },
+    "/v1/api-keys/{id}": {
+      "delete": {
+        "description": "Immediately and permanently revokes the key. Any request using it will start failing at once. This cannot be undone.",
+        "operationId": "ApiKeys_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "API key ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The revoked key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiKeyDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a workspace owner or admin"
+          },
+          "404": {
+            "description": "API key not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Revoke an API key",
+        "tags": [
+          "API Keys"
+        ]
+      }
+    },
+    "/v1/embed/session": {
+      "post": {
+        "description": "Mints a scoped, short-lived signing URL for a specific document recipient. Pass the returned `url` to an `<iframe src={url}>` or to the `@signvoy/react` `<SignvoyEmbed url={url} />` component. The document must be in `sent` state and the recipient must be `pending`.",
+        "operationId": "Embed_createSession",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmbedSessionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Embed session created — includes the signing URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmbedSessionResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Document not in 'sent' state or recipient already signed"
+          },
+          "403": {
+            "description": "Document does not belong to this workspace"
+          },
+          "404": {
+            "description": "Document or recipient not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create an embed session",
+        "tags": [
+          "Embed"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Signvoy API",
+    "description": "API for managing PDF document signing workflows, templates, and workspaces",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "Workspaces",
+      "description": "Workspace management and member operations"
+    },
+    {
+      "name": "Templates",
+      "description": "PDF template management"
+    },
+    {
+      "name": "Template Versions",
+      "description": "Draft and published template version management"
+    },
+    {
+      "name": "Template Gallery",
+      "description": "Curated starter templates"
+    },
+    {
+      "name": "Documents",
+      "description": "Document creation and lifecycle management"
+    },
+    {
+      "name": "Submissions",
+      "description": "Document submission and completion tracking"
+    },
+    {
+      "name": "Signing",
+      "description": "Public signing endpoints for recipients"
+    },
+    {
+      "name": "AI Templates",
+      "description": "AI-assisted template setup and field detection"
+    },
+    {
+      "name": "Webhooks",
+      "description": "Webhook endpoint management — register URLs, manage subscriptions, view delivery history"
+    },
+    {
+      "name": "API Keys",
+      "description": "Create and revoke workspace-scoped API keys for programmatic access"
+    },
+    {
+      "name": "Embed",
+      "description": "Mint scoped signing-session URLs for embedding the signing experience in your own UI"
+    }
+  ],
+  "servers": [
+    {
+      "url": "https://api.signvoy.com",
+      "description": "Production"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "api-key": {
+        "scheme": "bearer",
+        "bearerFormat": "API key",
+        "type": "http",
+        "description": "**Recommended.** Signvoy API key. Create one in Workspace Settings → API Keys and pass it as `Authorization: Bearer sk_live_...`. The key implies its workspace, so `X-Workspace-Id` is optional when using an API key."
+      },
+      "clerk-jwt": {
+        "scheme": "bearer",
+        "bearerFormat": "Clerk JWT",
+        "type": "http",
+        "description": "Clerk session JWT — used internally by the Signvoy dashboard. Not recommended for external integrations; use an API key instead."
+      },
+      "workspace-id": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Workspace-Id",
+        "description": "Workspace ID for multi-tenancy. Optional when authenticating with an API key (the key already implies its workspace)."
+      }
+    },
+    "schemas": {
+      "CreateWorkspaceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Workspace name",
+            "example": "Acme Corporation",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "slug": {
+            "type": "string",
+            "description": "URL-friendly slug (auto-generated from name if omitted). Must be lowercase alphanumeric with optional hyphens.",
+            "example": "acme-corp",
+            "minLength": 2,
+            "maxLength": 40
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateWorkspaceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Updated workspace name",
+            "example": "Updated Corporation Name",
+            "minLength": 2,
+            "maxLength": 60
+          },
+          "slug": {
+            "type": "string",
+            "description": "Updated URL-friendly slug. Must be lowercase alphanumeric with optional hyphens.",
+            "example": "updated-corp",
+            "minLength": 2,
+            "maxLength": 40
+          }
+        }
+      },
+      "InviteMemberDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address of the person to invite",
+            "example": "newmember@example.com"
+          },
+          "role": {
+            "type": "string",
+            "description": "Role to assign (defaults to 'member')",
+            "enum": [
+              "admin",
+              "member"
+            ],
+            "example": "member"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "UpdateMemberDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "New role for the member. Note: Owner role cannot be assigned via this endpoint.",
+            "enum": [
+              "admin",
+              "member"
+            ],
+            "example": "admin"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      },
+      "CreateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Template name",
+            "example": "NDA Template"
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Original PDF filename",
+            "example": "nda.pdf"
+          },
+          "pageCount": {
+            "type": "number",
+            "description": "Number of pages",
+            "example": 3,
+            "minimum": 1
+          },
+          "content": {
+            "type": "object",
+            "description": "Optional initial draft content (recipients/fields/rules)."
+          }
+        },
+        "required": [
+          "name",
+          "fileName",
+          "pageCount"
+        ]
+      },
+      "CreateTemplateResponseDto": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Newly created template ID"
+          },
+          "draftVersionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the initial draft version"
+          },
+          "uploadUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Presigned PUT URL for uploading the source PDF directly to storage. Upload the PDF bytes to this URL with Content-Type: application/pdf."
+          }
+        },
+        "required": [
+          "templateId",
+          "draftVersionId",
+          "uploadUrl"
+        ]
+      },
+      "TemplateVersionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published"
+            ]
+          },
+          "fileName": {
+            "type": "string",
+            "description": "Original PDF file name"
+          },
+          "pageCount": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Creation timestamp (Unix ms)"
+          },
+          "publishedAt": {
+            "type": "integer",
+            "description": "Unix ms when published"
+          },
+          "publishedBy": {
+            "type": "string",
+            "description": "Clerk user ID of the publisher"
+          },
+          "pdfUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Presigned PDF URL (included when explicitly requested)"
+          }
+        },
+        "required": [
+          "id",
+          "templateId",
+          "version",
+          "status",
+          "fileName",
+          "pageCount",
+          "createdAt"
+        ]
+      },
+      "TemplateWithVersionsDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Clerk user ID of the owner"
+          },
+          "name": {
+            "type": "string"
+          },
+          "archivedAt": {
+            "type": "integer",
+            "description": "Unix ms when archived (null if active)"
+          },
+          "createdAt": {
+            "type": "integer"
+          },
+          "updatedAt": {
+            "type": "integer"
+          },
+          "currentDraftVersionId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true
+          },
+          "currentPublishedVersionId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true
+          },
+          "draftVersion": {
+            "nullable": true,
+            "description": "Current draft version (null if none exists)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateVersionDto"
+              }
+            ]
+          },
+          "publishedVersion": {
+            "nullable": true,
+            "description": "Current published version (null if never published)",
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TemplateVersionDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "ownerId",
+          "name",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "TemplateUrlResponseDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Presigned PDF URL"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "UpdateTemplateDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Updated template name"
+          }
+        }
+      },
+      "CreateDocumentRecipientDto": {
+        "type": "object",
+        "properties": {
+          "roleKey": {
+            "type": "string",
+            "description": "Template role key this recipient fills (matches `version.content.recipients[].key`)",
+            "example": "buyer"
+          },
+          "name": {
+            "type": "string",
+            "description": "Recipient's full name",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "description": "Recipient's email address for notifications",
+            "example": "john.doe@example.com"
+          }
+        },
+        "required": [
+          "roleKey",
+          "name"
+        ]
+      },
+      "CreateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "templateId": {
+            "type": "string",
+            "description": "Template UUID to create document from",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "name": {
+            "type": "string",
+            "description": "Custom name for the document",
+            "example": "Q4 2025 Contract Agreement"
+          },
+          "message": {
+            "type": "string",
+            "description": "Message to include with the signing request",
+            "example": "Please review and sign this document at your earliest convenience."
+          },
+          "routingMode": {
+            "type": "string",
+            "description": "Signing-order mode. parallel (default): all recipients are invited at once. sequential: recipients are activated group-by-group by ascending order value — the next group is only activated once the current group has fully signed.",
+            "enum": [
+              "parallel",
+              "sequential"
+            ],
+            "default": "parallel"
+          },
+          "recipients": {
+            "description": "List of recipients who will sign the document",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateDocumentRecipientDto"
+            }
+          }
+        },
+        "required": [
+          "templateId",
+          "recipients"
+        ]
+      },
+      "DocumentRecipientDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "roleKey": {
+            "type": "string",
+            "description": "Matches template version recipient key"
+          },
+          "roleName": {
+            "type": "string",
+            "description": "Role display name snapshot at send time"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string",
+            "description": "Recipient email address"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex colour assigned to this recipient"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Signing order (0-based)"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "signed",
+              "declined"
+            ]
+          },
+          "signedAt": {
+            "type": "integer",
+            "description": "Unix ms timestamp when recipient signed"
+          },
+          "declinedAt": {
+            "type": "integer",
+            "description": "Unix ms timestamp when recipient declined"
+          },
+          "declineReason": {
+            "type": "string",
+            "description": "Reason for declining"
+          },
+          "signUrl": {
+            "type": "string",
+            "description": "URL where this recipient can complete signing"
+          }
+        },
+        "required": [
+          "id",
+          "roleKey",
+          "roleName",
+          "name",
+          "color",
+          "order",
+          "status"
+        ]
+      },
+      "DocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "templateVersionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "ownerId": {
+            "type": "string",
+            "description": "Clerk user ID of the document owner"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable document name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "sent",
+              "completed",
+              "declined",
+              "voided",
+              "expired"
+            ],
+            "description": "Current document lifecycle state"
+          },
+          "routingMode": {
+            "type": "string",
+            "enum": [
+              "parallel",
+              "sequential"
+            ],
+            "description": "Signing-order mode"
+          },
+          "message": {
+            "type": "string",
+            "description": "Custom message sent with the signing request"
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "Creation timestamp (Unix ms)"
+          },
+          "sentAt": {
+            "type": "integer",
+            "description": "Unix ms when sent"
+          },
+          "completedAt": {
+            "type": "integer",
+            "description": "Unix ms when all signed"
+          },
+          "voidedAt": {
+            "type": "integer",
+            "description": "Unix ms when voided"
+          },
+          "expiresAt": {
+            "type": "integer",
+            "description": "Unix ms when expires/expired"
+          },
+          "documentHash": {
+            "type": "string",
+            "description": "SHA-256 fingerprint of the certified final PDF"
+          },
+          "certifiedAt": {
+            "type": "integer",
+            "description": "Unix ms when certified"
+          },
+          "recipients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentRecipientDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "templateId",
+          "templateVersionId",
+          "ownerId",
+          "name",
+          "status",
+          "routingMode",
+          "createdAt",
+          "recipients"
+        ]
+      },
+      "UpdateDocumentDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Updated name for the document",
+            "example": "Revised Contract Agreement"
+          },
+          "message": {
+            "type": "string",
+            "description": "Updated message for the signing request",
+            "example": "Please review the updated terms and sign."
+          },
+          "recipients": {
+            "description": "Updated list of recipients (replaces existing)",
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateDocumentRecipientDto"
+            }
+          }
+        }
+      },
+      "UrlResponseDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Presigned download URL",
+            "format": "uri"
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "AuditEventDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "documentRecipientId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true
+          },
+          "type": {
+            "type": "string",
+            "description": "Event type",
+            "example": "signed"
+          },
+          "actorName": {
+            "type": "object",
+            "nullable": true
+          },
+          "actorEmail": {
+            "type": "object",
+            "nullable": true
+          },
+          "apiKeyId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "API key that performed the action (when applicable)"
+          },
+          "apiKeyName": {
+            "type": "object",
+            "nullable": true,
+            "description": "Human-readable name of the API key used (when applicable)"
+          },
+          "ipAddress": {
+            "type": "object",
+            "nullable": true
+          },
+          "userAgent": {
+            "type": "object",
+            "nullable": true
+          },
+          "metadata": {
+            "type": "object",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "documentId",
+          "type",
+          "createdAt"
+        ]
+      },
+      "SaveDraftDto": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object",
+            "description": "Field values as key-value pairs (fieldId -> value)",
+            "example": {
+              "field-1": "John Doe",
+              "field-2": "john@example.com",
+              "field-3": true
+            }
+          }
+        },
+        "required": [
+          "values"
+        ]
+      },
+      "SubmitSigningDto": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object",
+            "description": "Completed field values as key-value pairs (fieldId -> value)",
+            "example": {
+              "field-1": "data:image/png;base64,iVBORw0KGgoAAAANS...",
+              "field-2": "John Doe",
+              "field-3": "2025-05-13"
+            }
+          },
+          "signerName": {
+            "type": "string",
+            "description": "Name of the person signing",
+            "example": "John Doe"
+          },
+          "signerEmail": {
+            "type": "string",
+            "description": "Email of the person signing",
+            "example": "john.doe@example.com"
+          },
+          "consentAcceptedAt": {
+            "type": "number",
+            "description": "Unix timestamp (milliseconds) when consent was accepted",
+            "example": 1715607600000
+          }
+        },
+        "required": [
+          "values",
+          "signerName",
+          "consentAcceptedAt"
+        ]
+      },
+      "DeclineDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "Optional reason for declining to sign",
+            "example": "I need more time to review"
+          }
+        }
+      },
+      "InstantiateGalleryTemplateDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "GenerateTemplateDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "DetectFieldsDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "EditDraftDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateWebhookDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "HTTPS URL that Signvoy will POST events to",
+            "example": "https://example.com/webhooks/signvoy"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable label for this endpoint (shown in the dashboard)",
+            "example": "Production webhook"
+          },
+          "enabledEvents": {
+            "description": "Events to subscribe to. Pass an empty array to subscribe to all events.",
+            "example": [
+              "document.completed",
+              "document.declined"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "url",
+          "enabledEvents"
+        ]
+      },
+      "WebhookEndpointWithSecretDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "HTTPS URL Signvoy will POST events to"
+          },
+          "description": {
+            "type": "object",
+            "description": "Human-readable label"
+          },
+          "enabledEvents": {
+            "description": "Subscribed events. Empty array = all events.",
+            "example": [
+              "document.completed",
+              "document.declined"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ]
+          },
+          "consecutiveFailures": {
+            "type": "integer",
+            "description": "Count of consecutive delivery failures"
+          },
+          "disabledAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true
+          },
+          "successRate": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Percentage of successful deliveries (null if no deliveries yet)"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "secret": {
+            "type": "string",
+            "description": "HMAC-SHA256 signing secret. Shown only once — store it securely. Use it to verify the `Signvoy-Signature` header on inbound events.",
+            "example": "whsec_abc123..."
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "url",
+          "enabledEvents",
+          "status",
+          "consecutiveFailures",
+          "createdAt",
+          "updatedAt",
+          "secret"
+        ]
+      },
+      "WebhookEndpointDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "HTTPS URL Signvoy will POST events to"
+          },
+          "description": {
+            "type": "object",
+            "description": "Human-readable label"
+          },
+          "enabledEvents": {
+            "description": "Subscribed events. Empty array = all events.",
+            "example": [
+              "document.completed",
+              "document.declined"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "enabled",
+              "disabled"
+            ]
+          },
+          "consecutiveFailures": {
+            "type": "integer",
+            "description": "Count of consecutive delivery failures"
+          },
+          "disabledAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true
+          },
+          "successRate": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Percentage of successful deliveries (null if no deliveries yet)"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "url",
+          "enabledEvents",
+          "status",
+          "consecutiveFailures",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateWebhookDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "New HTTPS URL for this endpoint",
+            "example": "https://example.com/webhooks/signvoy"
+          },
+          "description": {
+            "type": "string",
+            "description": "Human-readable label",
+            "example": "Production webhook"
+          },
+          "enabledEvents": {
+            "description": "Events to subscribe to",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": "string",
+            "description": "Enable or disable this endpoint",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          }
+        }
+      },
+      "WebhookDeliveryDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "endpointId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "eventType": {
+            "type": "string",
+            "description": "Event type",
+            "example": "document.completed"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "success",
+              "failed"
+            ]
+          },
+          "responseStatus": {
+            "type": "integer",
+            "description": "HTTP status code received"
+          },
+          "responseBody": {
+            "type": "object",
+            "description": "First 500 chars of response body"
+          },
+          "attempts": {
+            "type": "integer",
+            "description": "Delivery attempt count"
+          },
+          "lastAttemptAt": {
+            "format": "date-time",
+            "type": "string",
+            "description": "Last attempt timestamp"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "endpointId",
+          "eventType",
+          "status",
+          "attempts",
+          "lastAttemptAt",
+          "createdAt"
+        ]
+      },
+      "CreateApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Human-readable label to identify this key in the dashboard",
+            "example": "Production server",
+            "maxLength": 100
+          },
+          "expiresInDays": {
+            "type": "number",
+            "description": "Optional expiry, in days from now. Omit for a key that never expires.",
+            "example": 90,
+            "minimum": 1,
+            "maximum": 3650
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "CreatedApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique API key identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable label"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Non-secret leading segment of the key",
+            "example": "sk_live_x7Kf9aB2"
+          },
+          "last4": {
+            "type": "string",
+            "description": "Last 4 characters of the key",
+            "example": "a1b2"
+          },
+          "lastUsedAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the key was last used to authenticate a request"
+          },
+          "expiresAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the key expires (null = never)"
+          },
+          "revoked": {
+            "type": "boolean",
+            "description": "Whether the key has been revoked"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          },
+          "key": {
+            "type": "string",
+            "description": "The full secret key. Shown only once, at creation — store it securely. Use it as a Bearer token: `Authorization: Bearer sk_live_...`",
+            "example": "sk_live_EXAMPLE_only_not_a_real_key"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "last4",
+          "revoked",
+          "createdAt",
+          "key"
+        ]
+      },
+      "ApiKeyDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique API key identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable label"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "Non-secret leading segment of the key",
+            "example": "sk_live_x7Kf9aB2"
+          },
+          "last4": {
+            "type": "string",
+            "description": "Last 4 characters of the key",
+            "example": "a1b2"
+          },
+          "lastUsedAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the key was last used to authenticate a request"
+          },
+          "expiresAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the key expires (null = never)"
+          },
+          "revoked": {
+            "type": "boolean",
+            "description": "Whether the key has been revoked"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "last4",
+          "revoked",
+          "createdAt"
+        ]
+      },
+      "CreateEmbedSessionDto": {
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the document whose signing session to embed"
+          },
+          "documentRecipientId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "UUID of the specific recipient whose signing view to embed"
+          },
+          "expiresInSeconds": {
+            "type": "integer",
+            "minimum": 60,
+            "maximum": 86400,
+            "default": 3600,
+            "description": "How long (seconds) the returned signing URL should remain valid. Defaults to 1 hour. Maximum is 24 hours."
+          }
+        },
+        "required": [
+          "documentId",
+          "documentRecipientId"
+        ]
+      },
+      "EmbedSessionResponseDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Scoped signing URL for the specified recipient. Embed this in an <iframe> or pass it to the @signvoy/react <SignvoyEmbed /> component. The URL is single-use and expires after the requested window.",
+            "example": "https://signvoy.com/sign/abc123?embed=1"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "ISO 8601 timestamp when this session URL expires"
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Document ID this session belongs to"
+          },
+          "documentRecipientId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Recipient ID this session was issued for"
+          }
+        },
+        "required": [
+          "url",
+          "expiresAt",
+          "documentId",
+          "documentRecipientId"
+        ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "description": "HTTP status code",
+            "example": 400
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the error occurred (ISO 8601)",
+            "example": "2026-07-03T12:34:56.000Z"
+          },
+          "path": {
+            "type": "string",
+            "description": "Request path that produced the error",
+            "example": "/v1/documents"
+          },
+          "message": {
+            "description": "Human-readable error message. For validation failures this may be an array of field-level messages.",
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            ],
+            "example": "Template not found"
+          }
+        },
+        "required": [
+          "statusCode",
+          "timestamp",
+          "path",
+          "message"
+        ]
+      }
+    }
+  }
+}
