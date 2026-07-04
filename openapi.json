@@ -1446,6 +1446,60 @@
         ]
       }
     },
+    "/v1/documents/{id}/remind": {
+      "post": {
+        "description": "Immediately emails a reminder to every pending recipient with an active signing link. Does not consume the automatic reminder budget.",
+        "operationId": "Documents_remind",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No pending recipients, or document not in a remindable state"
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Send a manual reminder",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
     "/v1/documents/{id}/void": {
       "post": {
         "description": "Cancels the document and prevents further signing",
@@ -3066,6 +3120,30 @@
           }
         }
       },
+      "ReminderSettingsDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether automatic reminders are enabled for this document",
+            "default": true
+          },
+          "intervalDays": {
+            "type": "number",
+            "description": "Days between automatic reminder emails",
+            "minimum": 1,
+            "maximum": 30,
+            "default": 3
+          },
+          "maxReminders": {
+            "type": "number",
+            "description": "Maximum number of automatic reminders before giving up",
+            "minimum": 0,
+            "maximum": 10,
+            "default": 3
+          }
+        }
+      },
       "CreateDocumentRecipientDto": {
         "type": "object",
         "properties": {
@@ -3117,6 +3195,14 @@
               "sequential"
             ],
             "default": "parallel"
+          },
+          "reminders": {
+            "description": "Automatic reminder cadence for this document. When omitted, the template's reminder default (or the product default) is used.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReminderSettingsDto"
+              }
+            ]
           },
           "recipients": {
             "description": "List of recipients who will sign the document",
@@ -3276,6 +3362,26 @@
             "type": "integer",
             "description": "Unix ms when certified"
           },
+          "reminderEnabled": {
+            "type": "boolean",
+            "description": "Whether automatic reminders are enabled"
+          },
+          "reminderIntervalDays": {
+            "type": "integer",
+            "description": "Days between automatic reminders"
+          },
+          "reminderMaxCount": {
+            "type": "integer",
+            "description": "Max automatic reminders"
+          },
+          "reminderCount": {
+            "type": "integer",
+            "description": "Automatic reminders sent so far"
+          },
+          "lastReminderAt": {
+            "type": "integer",
+            "description": "Unix ms of the most recent reminder (auto or manual)"
+          },
           "recipients": {
             "type": "array",
             "items": {
@@ -3293,6 +3399,10 @@
           "status",
           "routingMode",
           "createdAt",
+          "reminderEnabled",
+          "reminderIntervalDays",
+          "reminderMaxCount",
+          "reminderCount",
           "recipients"
         ]
       },
