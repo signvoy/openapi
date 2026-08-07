@@ -817,6 +817,20 @@
                 "all"
               ]
             }
+          },
+          {
+            "name": "kind",
+            "required": false,
+            "in": "query",
+            "description": "Which kind of template to list. `reusable` (the default) is the templates library. `oneoff` returns only the single-use templates behind an unfinished 'upload and send' — the ones still being prepared, with no document created from them yet.",
+            "schema": {
+              "example": "reusable",
+              "type": "string",
+              "enum": [
+                "reusable",
+                "oneoff"
+              ]
+            }
           }
         ],
         "responses": {
@@ -1110,7 +1124,7 @@
     },
     "/v1/documents": {
       "post": {
-        "description": "Creates a document from a template with recipients for signing",
+        "description": "Creates a document from a template with recipients for signing. Reusable templates must already be published. One-off templates — the single-use containers behind the 'upload and send' flow — are published implicitly here, so their draft must pass rules-engine validation.",
         "operationId": "Documents_create",
         "parameters": [],
         "requestBody": {
@@ -1135,7 +1149,7 @@
             }
           },
           "400": {
-            "description": "Invalid input data"
+            "description": "Invalid input data, an unknown role key, an archived template, a reusable template with no published version (`NO_PUBLISHED_VERSION`), or a one-off template whose draft has blocking rule diagnostics."
           },
           "401": {
             "description": "Unauthorized - Invalid or missing JWT token"
@@ -1500,6 +1514,70 @@
         ]
       }
     },
+    "/v1/documents/{id}/recipients/{recipientId}/remind": {
+      "post": {
+        "description": "Immediately emails a reminder to a single pending recipient with an active signing link. Does not consume the automatic reminder budget.",
+        "operationId": "Documents_remindRecipient",
+        "parameters": [
+          {
+            "name": "recipientId",
+            "required": true,
+            "in": "path",
+            "description": "Recipient UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Document UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Recipient not pending or does not have an active signing link"
+          },
+          "403": {
+            "description": "Forbidden - Not the document owner"
+          },
+          "404": {
+            "description": "Document or recipient not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Send a reminder to a specific recipient",
+        "tags": [
+          "Documents"
+        ]
+      }
+    },
     "/v1/documents/{id}/void": {
       "post": {
         "description": "Cancels the document and prevents further signing",
@@ -1556,9 +1634,18 @@
     },
     "/v1/documents/{id}/signed-pdf": {
       "get": {
-        "description": "Retrieves a presigned URL to download the completed signed PDF",
+        "description": "Retrieves a presigned URL for the completed signed PDF. By default the URL renders inline (for previewing in a browser); pass `download=true` to force an attachment download with a friendly filename.",
         "operationId": "Documents_signedPdf",
         "parameters": [
+          {
+            "name": "download",
+            "required": false,
+            "in": "query",
+            "description": "Force an attachment download instead of inline rendering",
+            "schema": {
+              "type": "boolean"
+            }
+          },
           {
             "name": "id",
             "required": true,
@@ -1953,7 +2040,7 @@
     },
     "/v1/template-gallery": {
       "get": {
-        "description": "Returns the curated gallery catalog. Optionally filter by category.",
+        "description": "Returns the curated gallery catalog. Optionally filter by category. Card-sized: includes recipients and a field count, but not `fields`, `body`, or a preview URL — fetch a single template for those.",
         "operationId": "TemplateGallery_list",
         "parameters": [
           {
@@ -1967,7 +2054,17 @@
         ],
         "responses": {
           "200": {
-            "description": ""
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GalleryTemplateDto"
+                  }
+                }
+              }
+            }
           }
         },
         "security": [
@@ -1986,7 +2083,7 @@
     },
     "/v1/template-gallery/{slug}": {
       "get": {
-        "description": "Includes a short-lived presigned PDF preview URL.",
+        "description": "Includes the full normalized `content` so the client can render the template itself, plus a short-lived presigned PDF preview URL for `sourceKind: 'pdf'` templates only.",
         "operationId": "TemplateGallery_findOne",
         "parameters": [
           {
@@ -2000,7 +2097,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Gallery template with preview URL."
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GalleryTemplateDto"
+                }
+              }
+            }
           },
           "404": {
             "description": "Not found."
@@ -2069,24 +2173,13 @@
         ]
       }
     },
-    "/v1/ai/templates/generate": {
+    "/v1/agent/sessions": {
       "post": {
-        "description": "Uses an LLM to design recipients, fields, conditional rules, and a backing PDF from your description. Returns a draft template ready to customize in the editor.",
-        "operationId": "AiTemplate_generate",
+        "operationId": "Agent_createSession",
         "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GenerateTemplateDto"
-              }
-            }
-          }
-        },
         "responses": {
           "201": {
-            "description": "Draft template created."
+            "description": ""
           }
         },
         "security": [
@@ -2097,74 +2190,26 @@
             "clerk-jwt": []
           }
         ],
-        "summary": "Generate a template from a natural-language prompt",
+        "summary": "Create a new agent conversation",
         "tags": [
-          "AI Templates"
+          "Agent"
         ]
-      }
-    },
-    "/v1/ai/templates/detect-fields": {
-      "post": {
-        "description": "Analyses the uploaded PDF and returns a suggested TemplateVersionContent (recipients, fields with coordinates, conditional rules). The caller applies the suggestions through the editor (supports undo/redo via the Zustand store).",
-        "operationId": "AiTemplate_detectFields",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DetectFieldsDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Suggested content returned."
-          }
-        },
-        "security": [
-          {
-            "workspace-id": []
-          },
-          {
-            "clerk-jwt": []
-          }
-        ],
-        "summary": "Detect fields on an already-uploaded PDF draft",
-        "tags": [
-          "AI Templates"
-        ]
-      }
-    },
-    "/v1/ai/templates/{templateId}/edit": {
-      "post": {
-        "description": "Loads the current draft content, applies the instruction via LLM, validates the result with the rules engine, and returns the proposed updated content + a diff summary. The client applies the changes through the Zustand editor store so undo/redo still works.",
-        "operationId": "AiTemplate_editDraft",
+      },
+      "get": {
+        "operationId": "Agent_listSessions",
         "parameters": [
           {
             "name": "templateId",
             "required": true,
-            "in": "path",
+            "in": "query",
             "schema": {
-              "format": "uuid",
               "type": "string"
             }
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EditDraftDto"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "Updated content + summary returned."
+            "description": ""
           }
         },
         "security": [
@@ -2175,9 +2220,140 @@
             "clerk-jwt": []
           }
         ],
-        "summary": "Edit an existing draft template with a natural-language instruction",
+        "summary": "List agent conversations (optionally by template)",
         "tags": [
-          "AI Templates"
+          "Agent"
+        ]
+      }
+    },
+    "/v1/agent/sessions/{id}": {
+      "get": {
+        "operationId": "Agent_getSession",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Load a conversation with rehydrated messages",
+        "tags": [
+          "Agent"
+        ]
+      },
+      "delete": {
+        "operationId": "Agent_deleteSession",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Delete a conversation",
+        "tags": [
+          "Agent"
+        ]
+      }
+    },
+    "/v1/agent/chat": {
+      "post": {
+        "operationId": "Agent_chat",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Stream a chat turn (Server-Sent Events)",
+        "tags": [
+          "Agent"
+        ]
+      }
+    },
+    "/v1/agent/generate": {
+      "post": {
+        "operationId": "Agent_generate",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Generate a new template draft from a prompt",
+        "tags": [
+          "Agent"
+        ]
+      }
+    },
+    "/v1/agent/detect-fields": {
+      "post": {
+        "operationId": "Agent_detectFields",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Detect fields on a draft PDF (AcroForm + text)",
+        "tags": [
+          "Agent"
         ]
       }
     },
@@ -2751,6 +2927,218 @@
           "Embed"
         ]
       }
+    },
+    "/v1/notifications": {
+      "get": {
+        "operationId": "Notifications_list",
+        "parameters": [
+          {
+            "name": "unread",
+            "required": false,
+            "in": "query",
+            "description": "When true, return only unread notifications",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximum number of notifications to return",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "List notifications for the current user",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/v1/notifications/unread-count": {
+      "get": {
+        "operationId": "Notifications_unreadCount",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnreadCountDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Get the unread notification count",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/v1/notifications/{id}/read": {
+      "patch": {
+        "operationId": "Notifications_markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Mark a notification as read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/v1/notifications/read-all": {
+      "post": {
+        "operationId": "Notifications_markAllRead",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Mark all notifications as read",
+        "tags": [
+          "Notifications"
+        ]
+      }
+    },
+    "/v1/mcp-grants": {
+      "post": {
+        "description": "Creates or un-revokes a grant so the specified Clerk OAuth client can access the MCP endpoint on behalf of the authenticated user. The clerkClientId is the client_id returned by Clerk's Dynamic Client Registration endpoint when an MCP client connects for the first time.",
+        "operationId": "McpGrants_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMcpGrantDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Authorise an OAuth client to call the MCP endpoint",
+        "tags": [
+          "MCP"
+        ]
+      },
+      "get": {
+        "operationId": "McpGrants_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "List active MCP grants for the current user",
+        "tags": [
+          "MCP"
+        ]
+      }
+    },
+    "/v1/mcp-grants/{id}": {
+      "delete": {
+        "operationId": "McpGrants_revoke",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Revoke an MCP grant",
+        "tags": [
+          "MCP"
+        ]
+      }
     }
   },
   "info": {
@@ -2793,8 +3181,8 @@
       "description": "Public signing endpoints for recipients"
     },
     {
-      "name": "AI Templates",
-      "description": "AI-assisted template setup and field detection"
+      "name": "Agent",
+      "description": "AI agent sessions for template generation, field detection, and conversational editing"
     },
     {
       "name": "Webhooks",
@@ -2807,6 +3195,14 @@
     {
       "name": "Embed",
       "description": "Mint scoped signing-session URLs for embedding the signing experience in your own UI"
+    },
+    {
+      "name": "Notifications",
+      "description": "In-app notifications — list, unread counts, and read-state management"
+    },
+    {
+      "name": "MCP",
+      "description": "Model Context Protocol grants — authorise and revoke AI agent access per workspace"
     }
   ],
   "servers": [
@@ -2938,7 +3334,16 @@
           },
           "content": {
             "type": "object",
-            "description": "Optional initial draft content (recipients/fields/rules)."
+            "description": "Optional initial draft content (recipients/fields/rules, plus the `sourceFiles` manifest when several PDFs were merged on upload)."
+          },
+          "kind": {
+            "type": "string",
+            "description": "Whether this is a reusable template or the single-use container behind a one-off document. One-off templates are hidden from the templates list and are published implicitly when a document is created from them.",
+            "enum": [
+              "reusable",
+              "oneoff"
+            ],
+            "default": "reusable"
           }
         },
         "required": [
@@ -3048,6 +3453,14 @@
           "name": {
             "type": "string"
           },
+          "kind": {
+            "type": "string",
+            "description": "Reusable templates appear in the templates list. One-off templates back a single 'upload and send' document and are hidden from every listing.",
+            "enum": [
+              "reusable",
+              "oneoff"
+            ]
+          },
           "archivedAt": {
             "type": "integer",
             "description": "Unix ms when archived (null if active)"
@@ -3094,6 +3507,7 @@
           "workspaceId",
           "ownerId",
           "name",
+          "kind",
           "createdAt",
           "updatedAt"
         ]
@@ -3141,6 +3555,18 @@
             "minimum": 0,
             "maximum": 10,
             "default": 3
+          }
+        }
+      },
+      "ExpirySettingsDto": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "number",
+            "description": "Days after sending that this document can still be signed. The absolute deadline is derived from this when the document is sent.",
+            "minimum": 1,
+            "maximum": 365,
+            "default": 30
           }
         }
       },
@@ -3201,6 +3627,14 @@
             "allOf": [
               {
                 "$ref": "#/components/schemas/ReminderSettingsDto"
+              }
+            ]
+          },
+          "expiry": {
+            "description": "Signing deadline for this document. When omitted, the template's deadline default (or the product default) is used.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExpirySettingsDto"
               }
             ]
           },
@@ -3271,6 +3705,14 @@
           "signUrl": {
             "type": "string",
             "description": "URL where this recipient can complete signing"
+          },
+          "lastRemindedAt": {
+            "type": "integer",
+            "description": "Unix ms timestamp when recipient was last reminded (manual or automatic)"
+          },
+          "hasActiveSigningLink": {
+            "type": "boolean",
+            "description": "Whether this recipient has an active signing link (can currently sign)"
           }
         },
         "required": [
@@ -3315,6 +3757,7 @@
             "enum": [
               "draft",
               "sent",
+              "in_progress",
               "completed",
               "declined",
               "voided",
@@ -3387,6 +3830,35 @@
             "items": {
               "$ref": "#/components/schemas/DocumentRecipientDto"
             }
+          },
+          "sendBlockers": {
+            "type": "array",
+            "description": "Reasons a draft cannot yet be sent. Empty array when the document is ready to send or is not in draft state.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "enum": [
+                    "NO_RECIPIENTS",
+                    "RECIPIENT_EMAIL_MISSING"
+                  ]
+                },
+                "message": {
+                  "type": "string"
+                },
+                "recipientIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "code",
+                "message"
+              ]
+            }
           }
         },
         "required": [
@@ -3403,7 +3875,8 @@
           "reminderIntervalDays",
           "reminderMaxCount",
           "reminderCount",
-          "recipients"
+          "recipients",
+          "sendBlockers"
         ]
       },
       "UpdateDocumentDto": {
@@ -3411,16 +3884,41 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Updated name for the document",
-            "example": "Revised Contract Agreement"
+            "description": "Custom name for the document",
+            "example": "Q4 2025 Contract Agreement"
           },
           "message": {
             "type": "string",
-            "description": "Updated message for the signing request",
-            "example": "Please review the updated terms and sign."
+            "description": "Message to include with the signing request",
+            "example": "Please review and sign this document at your earliest convenience."
+          },
+          "routingMode": {
+            "type": "string",
+            "description": "Signing-order mode. parallel (default): all recipients are invited at once. sequential: recipients are activated group-by-group by ascending order value — the next group is only activated once the current group has fully signed.",
+            "enum": [
+              "parallel",
+              "sequential"
+            ],
+            "default": "parallel"
+          },
+          "reminders": {
+            "description": "Automatic reminder cadence for this document. When omitted, the template's reminder default (or the product default) is used.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ReminderSettingsDto"
+              }
+            ]
+          },
+          "expiry": {
+            "description": "Signing deadline for this document. When omitted, the template's deadline default (or the product default) is used.",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExpirySettingsDto"
+              }
+            ]
           },
           "recipients": {
-            "description": "Updated list of recipients (replaces existing)",
+            "description": "List of recipients who will sign the document",
             "minItems": 1,
             "type": "array",
             "items": {
@@ -3567,19 +4065,116 @@
           }
         }
       },
+      "GalleryRecipientDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable key referenced by `field.recipientKey`"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex colour, e.g. `#2563EB`"
+          },
+          "order": {
+            "type": "integer",
+            "description": "Signing order (0-based)"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "color",
+          "order"
+        ]
+      },
+      "GalleryTemplateDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string",
+            "description": "Stable URL-safe identifier"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "fileName": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "integer",
+            "description": "Page count of the seed PDF. Meaningful only for `sourceKind: 'pdf'` — a document-source template has no fixed page count until it is frozen at publish."
+          },
+          "planTier": {
+            "type": "string"
+          },
+          "sortOrder": {
+            "type": "integer"
+          },
+          "sourceKind": {
+            "type": "string",
+            "enum": [
+              "pdf",
+              "document"
+            ],
+            "description": "`document` for content-native rich-text templates, `pdf` for templates built on an uploaded file."
+          },
+          "recipients": {
+            "description": "Signers, with the colours their fields are drawn in.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GalleryRecipientDto"
+            }
+          },
+          "fieldCount": {
+            "type": "integer",
+            "description": "Total fields across all pages"
+          },
+          "previewUrl": {
+            "type": "string",
+            "description": "Short-lived presigned URL for the seed PDF. Only present on the detail response and only for `sourceKind: 'pdf'` — document templates are rendered client-side from `content.body`."
+          },
+          "content": {
+            "type": "object",
+            "description": "Full normalized template content: recipients, fields, rules, and (for document source) the rich-text body. Detail response only."
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "description",
+          "category",
+          "tags",
+          "fileName",
+          "pageCount",
+          "planTier",
+          "sortOrder",
+          "sourceKind",
+          "recipients",
+          "fieldCount"
+        ]
+      },
       "InstantiateGalleryTemplateDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "GenerateTemplateDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "DetectFieldsDto": {
-        "type": "object",
-        "properties": {}
-      },
-      "EditDraftDto": {
         "type": "object",
         "properties": {}
       },
@@ -4039,6 +4634,82 @@
           "documentId",
           "documentRecipientId"
         ]
+      },
+      "NotificationDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "recipient_signed",
+              "document_completed",
+              "document_declined",
+              "document_expired"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": "string"
+          },
+          "documentId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true
+          },
+          "data": {
+            "type": "object",
+            "nullable": true
+          },
+          "readAt": {
+            "type": "object",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "userId",
+          "type",
+          "title",
+          "body",
+          "documentId",
+          "data",
+          "readAt",
+          "createdAt"
+        ]
+      },
+      "UnreadCountDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "CreateMcpGrantDto": {
+        "type": "object",
+        "properties": {}
       },
       "ErrorResponseDto": {
         "type": "object",
