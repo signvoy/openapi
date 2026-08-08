@@ -759,7 +759,7 @@
     },
     "/v1/templates": {
       "post": {
-        "description": "Reserves a template id and the initial draft version, plus a presigned URL the browser uses to upload the source PDF directly.",
+        "description": "Reserves a template id and the initial draft version. For a PDF source (the default) the response also carries a presigned URL the browser uploads the file to. Pass a `content` body with `sourceKind: \"document\"` to author the template as rich text instead; there is then no file to upload, so no `uploadUrl` is returned.",
         "operationId": "Templates_create",
         "parameters": [],
         "requestBody": {
@@ -3319,22 +3319,23 @@
           "name": {
             "type": "string",
             "description": "Template name",
-            "example": "NDA Template"
+            "example": "NDA Template",
+            "maxLength": 255
           },
           "fileName": {
             "type": "string",
-            "description": "Original PDF filename",
+            "description": "Original PDF filename. Required for a pdf source; omit it for a document source, which has no uploaded file.",
             "example": "nda.pdf"
           },
           "pageCount": {
             "type": "number",
-            "description": "Number of pages",
+            "description": "Number of pages. Required for a pdf source; omit it for a document source, whose length is only known once the body is rendered.",
             "example": 3,
             "minimum": 1
           },
           "content": {
             "type": "object",
-            "description": "Optional initial draft content (recipients/fields/rules, plus the `sourceFiles` manifest when several PDFs were merged on upload)."
+            "description": "Optional initial draft content (recipients/fields/rules, plus the `sourceFiles` manifest when several PDFs were merged on upload). Pass a body with `sourceKind: \"document\"` to author the template as rich text instead of uploading a PDF."
           },
           "kind": {
             "type": "string",
@@ -3347,9 +3348,7 @@
           }
         },
         "required": [
-          "name",
-          "fileName",
-          "pageCount"
+          "name"
         ]
       },
       "CreateTemplateResponseDto": {
@@ -3368,13 +3367,12 @@
           "uploadUrl": {
             "type": "string",
             "format": "uri",
-            "description": "Presigned PUT URL for uploading the source PDF directly to storage. Upload the PDF bytes to this URL with Content-Type: application/pdf."
+            "description": "Presigned PUT URL for uploading the source PDF directly to storage. Upload the PDF bytes to this URL with Content-Type: application/pdf. Absent for a document-source template, which has no file to upload — its PDF is rendered from the body at signing time."
           }
         },
         "required": [
           "templateId",
-          "draftVersionId",
-          "uploadUrl"
+          "draftVersionId"
         ]
       },
       "TemplateVersionDto": {
@@ -3530,7 +3528,8 @@
         "properties": {
           "name": {
             "type": "string",
-            "description": "Updated template name"
+            "description": "Updated template name",
+            "maxLength": 255
           }
         }
       },
@@ -3581,12 +3580,14 @@
           "name": {
             "type": "string",
             "description": "Recipient's full name",
-            "example": "John Doe"
+            "example": "John Doe",
+            "maxLength": 255
           },
           "email": {
             "type": "string",
             "description": "Recipient's email address for notifications",
-            "example": "john.doe@example.com"
+            "example": "john.doe@example.com",
+            "maxLength": 254
           }
         },
         "required": [
@@ -3606,12 +3607,14 @@
           "name": {
             "type": "string",
             "description": "Custom name for the document",
-            "example": "Q4 2025 Contract Agreement"
+            "example": "Q4 2025 Contract Agreement",
+            "maxLength": 255
           },
           "message": {
             "type": "string",
             "description": "Message to include with the signing request",
-            "example": "Please review and sign this document at your earliest convenience."
+            "example": "Please review and sign this document at your earliest convenience.",
+            "maxLength": 5000
           },
           "routingMode": {
             "type": "string",
@@ -3885,12 +3888,14 @@
           "name": {
             "type": "string",
             "description": "Custom name for the document",
-            "example": "Q4 2025 Contract Agreement"
+            "example": "Q4 2025 Contract Agreement",
+            "maxLength": 255
           },
           "message": {
             "type": "string",
             "description": "Message to include with the signing request",
-            "example": "Please review and sign this document at your earliest convenience."
+            "example": "Please review and sign this document at your earliest convenience.",
+            "maxLength": 5000
           },
           "routingMode": {
             "type": "string",
