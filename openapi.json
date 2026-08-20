@@ -526,6 +526,280 @@
         ]
       }
     },
+    "/v1/billing": {
+      "get": {
+        "description": "Current plan, entitlements, seat and document usage, and the available upgrade prices. Readable by any workspace member so the UI can show why an action was blocked; only the owner can change anything.",
+        "operationId": "Billing_summary",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Billing summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingSummaryDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Get billing summary",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/checkout": {
+      "post": {
+        "description": "Creates a Stripe-hosted Checkout Session for the chosen plan and returns its URL. Redirect the browser to it with a full-page navigation. Pass `seats` to buy more than the plan bundles in the same transaction. Seats already in use beyond what the plan bundles are included in the first invoice, so nobody loses access on upgrade.",
+        "operationId": "Billing_checkout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectPlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRedirectDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the workspace owner"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Start a checkout",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/portal": {
+      "post": {
+        "description": "Creates a Stripe-hosted Customer Portal session for managing the payment method, downloading invoices, and cancelling. Plan and seat changes are deliberately not available there — use this API, which checks changes against actual workspace membership.",
+        "operationId": "Billing_portal",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Portal URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRedirectDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the workspace owner"
+          },
+          "404": {
+            "description": "Account has no billing history yet"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Open the customer portal",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/plan": {
+      "patch": {
+        "description": "Moves an existing subscription to another plan or billing interval. Upgrades are prorated and take effect at once. Downgrades issue no credit and the lower price applies from the next renewal. Seats already paid for carry over; pass `seats` to change that number at the same time.",
+        "operationId": "Billing_changePlan",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectPlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated billing summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingSummaryDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the workspace owner"
+          },
+          "404": {
+            "description": "No subscription to change"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Change plan or interval",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/seats": {
+      "patch": {
+        "description": "Sets how many seats the account pays for. Never called implicitly by inviting someone — adding a teammate returns 402 with `SEAT_LIMIT_REACHED` so the owner confirms the charge first.",
+        "operationId": "Billing_updateSeats",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSeatsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated billing summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingSummaryDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the workspace owner"
+          },
+          "404": {
+            "description": "No subscription to add seats to"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Set the seat count",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/public/checkout": {
+      "post": {
+        "description": "Creates a Stripe-hosted Checkout Session for a visitor who has not signed up, and returns its URL for a full-page redirect. Stripe collects the email; the resulting subscription is attached to an account provisioned for that address when the webhook arrives, and the buyer proves ownership of it by signing in afterwards. Seats are charged as requested, floored at what the plan bundles.",
+        "operationId": "PublicCheckout_checkout",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnonymousCheckoutDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Checkout URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingRedirectDto"
+                }
+              }
+            }
+          }
+        },
+        "summary": "Start a checkout without an account",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
+    "/v1/billing/public/checkout/{sessionId}": {
+      "get": {
+        "description": "Returns the plan, seat count, and email for a checkout started without an account, so the post-payment page can confirm what was bought and point the buyer at the right sign-in address. Sessions that were not started anonymously are reported as not found.",
+        "operationId": "PublicCheckout_status",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Checkout summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnonymousCheckoutStatusDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown checkout session"
+          }
+        },
+        "summary": "Describe an anonymous checkout",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/v1/templates/{templateId}/draft": {
       "get": {
         "description": "Returns the current draft version's content, or 200 with `null` if none exists.",
@@ -1951,6 +2225,38 @@
         ]
       }
     },
+    "/v1/sign/{token}/document": {
+      "get": {
+        "description": "Presigned URL for the document as it stands for this recipient. A CC or viewer placed mid-order receives the snapshot as of their step; once the document is complete, everyone gets the certified final PDF.",
+        "operationId": "Signing_documentUrl",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "description": "Unique signing token sent to recipient",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download URL issued"
+          },
+          "401": {
+            "description": "Invalid or expired signing token"
+          },
+          "409": {
+            "description": "No rendered PDF exists for this document yet"
+          }
+        },
+        "summary": "Get a download link for the document",
+        "tags": [
+          "Signing"
+        ]
+      }
+    },
     "/v1/sign/{token}/submit": {
       "post": {
         "description": "Submits the completed document with recipient's signatures and data",
@@ -1985,6 +2291,9 @@
           },
           "401": {
             "description": "Invalid or expired signing token"
+          },
+          "403": {
+            "description": "Recipient's role does not permit signing (a CC recipient holds a read-only copy link)"
           },
           "409": {
             "description": "Document already submitted or in invalid state"
@@ -2030,6 +2339,9 @@
           },
           "401": {
             "description": "Invalid or expired signing token"
+          },
+          "403": {
+            "description": "Recipient's role does not permit declining"
           }
         },
         "summary": "Decline to sign",
@@ -3077,6 +3389,68 @@
         ]
       }
     },
+    "/v1/users/me": {
+      "get": {
+        "operationId": "Users_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Get the current user's profile, creating it on first call",
+        "tags": [
+          "Users"
+        ]
+      },
+      "patch": {
+        "operationId": "Users_updateMe",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Update the current user's profile and onboarding progress",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/v1/mcp-grants": {
       "post": {
         "description": "Creates or un-revokes a grant so the specified Clerk OAuth client can access the MCP endpoint on behalf of the authenticated user. The clerkClientId is the client_id returned by Clerk's Dynamic Client Registration endpoint when an MCP client connects for the first time.",
@@ -3203,6 +3577,14 @@
     {
       "name": "MCP",
       "description": "Model Context Protocol grants — authorise and revoke AI agent access per workspace"
+    },
+    {
+      "name": "Billing",
+      "description": "Plan, seats, and usage — read entitlements, start a checkout, open the customer portal"
+    },
+    {
+      "name": "Users",
+      "description": "The signed-in user's own profile and onboarding progress — scoped to the user, not a workspace"
     }
   ],
   "servers": [
@@ -3311,6 +3693,367 @@
         },
         "required": [
           "role"
+        ]
+      },
+      "BillingSeatsDto": {
+        "type": "object",
+        "properties": {
+          "included": {
+            "type": "number",
+            "description": "Seats bundled with the current plan",
+            "example": 3
+          },
+          "purchased": {
+            "type": "number",
+            "description": "Extra seats bought on top",
+            "example": 1
+          },
+          "allowed": {
+            "type": "number",
+            "description": "Seats the account may fill (included + purchased)",
+            "example": 4
+          },
+          "used": {
+            "type": "number",
+            "description": "Seats in use: distinct members across every workspace on the account, plus pending invitations to addresses that are not already members",
+            "example": 4
+          }
+        },
+        "required": [
+          "included",
+          "purchased",
+          "allowed",
+          "used"
+        ]
+      },
+      "BillingDocumentsDto": {
+        "type": "object",
+        "properties": {
+          "sent": {
+            "type": "number",
+            "description": "Documents sent in the current billing period",
+            "example": 7
+          },
+          "limit": {
+            "type": "number",
+            "nullable": true,
+            "description": "Documents included per period; null means unlimited",
+            "example": 10
+          }
+        },
+        "required": [
+          "sent"
+        ]
+      },
+      "BillingWorkspacesDto": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "number",
+            "description": "Workspaces on this account",
+            "example": 1
+          },
+          "limit": {
+            "type": "number",
+            "nullable": true,
+            "description": "Workspaces allowed; null means unlimited",
+            "example": 1
+          }
+        },
+        "required": [
+          "count"
+        ]
+      },
+      "BillingFeaturesDto": {
+        "type": "object",
+        "properties": {
+          "customBranding": {
+            "type": "boolean",
+            "description": "Custom logo and colours; Signvoy branding removed"
+          },
+          "customEmailSender": {
+            "type": "boolean",
+            "description": "Custom from / reply-to address on signing emails"
+          },
+          "sharedTemplates": {
+            "type": "boolean",
+            "description": "Templates shared with the whole workspace"
+          },
+          "workspaceWideVisibility": {
+            "type": "boolean",
+            "description": "Members can see every document in the workspace"
+          }
+        },
+        "required": [
+          "customBranding",
+          "customEmailSender",
+          "sharedTemplates",
+          "workspaceWideVisibility"
+        ]
+      },
+      "BillingPlanOptionDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "pro",
+              "team"
+            ],
+            "example": "pro"
+          },
+          "monthlyUsd": {
+            "type": "number",
+            "description": "Monthly price in USD",
+            "example": 10
+          },
+          "annualMonthlyUsd": {
+            "type": "number",
+            "description": "Effective monthly price when billed annually, in USD",
+            "example": 8
+          },
+          "includedSeats": {
+            "type": "number",
+            "description": "Seats bundled with this plan",
+            "example": 1
+          }
+        },
+        "required": [
+          "plan",
+          "monthlyUsd",
+          "annualMonthlyUsd",
+          "includedSeats"
+        ]
+      },
+      "BillingSummaryDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "description": "Plan on the subscription, i.e. what the account pays for",
+            "enum": [
+              "free",
+              "pro",
+              "team",
+              "enterprise"
+            ],
+            "example": "pro"
+          },
+          "effectivePlan": {
+            "type": "string",
+            "description": "Plan actually in force. Differs from `plan` only when the subscription has lapsed, in which case entitlements fall back to Free.",
+            "enum": [
+              "free",
+              "pro",
+              "team",
+              "enterprise"
+            ],
+            "example": "pro"
+          },
+          "status": {
+            "type": "string",
+            "nullable": true,
+            "description": "Stripe subscription status; null on an account that never paid",
+            "example": "active"
+          },
+          "interval": {
+            "type": "string",
+            "nullable": true,
+            "enum": [
+              "month",
+              "year"
+            ],
+            "description": "Billing interval; null on Free",
+            "example": "month"
+          },
+          "cancelAtPeriodEnd": {
+            "type": "boolean",
+            "description": "Whether the subscription stops at the end of the period"
+          },
+          "currentPeriodEnd": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "End of the current billing period; null on Free"
+          },
+          "hasBillingHistory": {
+            "type": "boolean",
+            "description": "Whether this account has ever reached checkout, and therefore whether the Customer Portal has invoices and a payment method to show"
+          },
+          "seats": {
+            "$ref": "#/components/schemas/BillingSeatsDto"
+          },
+          "documents": {
+            "$ref": "#/components/schemas/BillingDocumentsDto"
+          },
+          "workspaces": {
+            "$ref": "#/components/schemas/BillingWorkspacesDto"
+          },
+          "features": {
+            "$ref": "#/components/schemas/BillingFeaturesDto"
+          },
+          "extraSeatMonthlyUsd": {
+            "type": "number",
+            "description": "Price per extra seat per month, in USD",
+            "example": 8
+          },
+          "extraSeatAnnualUsd": {
+            "type": "number",
+            "description": "Price per extra seat per month when billed annually, in USD",
+            "example": 6
+          },
+          "availablePlans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BillingPlanOptionDto"
+            }
+          }
+        },
+        "required": [
+          "plan",
+          "effectivePlan",
+          "cancelAtPeriodEnd",
+          "hasBillingHistory",
+          "seats",
+          "documents",
+          "workspaces",
+          "features",
+          "extraSeatMonthlyUsd",
+          "extraSeatAnnualUsd",
+          "availablePlans"
+        ]
+      },
+      "SelectPlanDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "description": "Plan to subscribe to or move to",
+            "enum": [
+              "pro",
+              "team"
+            ],
+            "example": "pro"
+          },
+          "interval": {
+            "type": "string",
+            "description": "Billing interval. Annual is billed once for twelve months at a 20% discount.",
+            "enum": [
+              "month",
+              "year"
+            ],
+            "example": "month"
+          },
+          "seats": {
+            "type": "number",
+            "description": "Total seats to buy, including the ones the plan already bundles — the same number the dashboard displays. Omit it to buy exactly what the plan bundles, or what the account already occupies if that is more. Values below the seats currently in use are raised to that floor.",
+            "example": 10,
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": [
+          "plan",
+          "interval"
+        ]
+      },
+      "BillingRedirectDto": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Stripe-hosted URL to send the browser to",
+            "example": "https://checkout.stripe.com/c/pay/cs_test_..."
+          }
+        },
+        "required": [
+          "url"
+        ]
+      },
+      "UpdateSeatsDto": {
+        "type": "object",
+        "properties": {
+          "seats": {
+            "type": "number",
+            "description": "Total seats the account should have, including the ones the plan already bundles — the same number the dashboard displays. Requests below the seats currently in use are raised to that floor rather than rejected, so members are never billed out from under.",
+            "example": 4,
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": [
+          "seats"
+        ]
+      },
+      "AnonymousCheckoutDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "description": "Plan to buy. Free needs no payment and Enterprise is a sales conversation.",
+            "enum": [
+              "pro",
+              "team"
+            ],
+            "example": "team"
+          },
+          "interval": {
+            "type": "string",
+            "description": "Billing interval. Annual is billed once for twelve months at a 20% discount.",
+            "enum": [
+              "month",
+              "year"
+            ],
+            "example": "month"
+          },
+          "seats": {
+            "type": "number",
+            "description": "Total seats to buy, including the ones the plan bundles. Omit it to buy exactly what the plan bundles. Values below that are raised to it.",
+            "example": 10,
+            "minimum": 1,
+            "maximum": 500
+          }
+        },
+        "required": [
+          "plan",
+          "interval"
+        ]
+      },
+      "AnonymousCheckoutStatusDto": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "nullable": true,
+            "description": "Plan bought",
+            "example": "team"
+          },
+          "interval": {
+            "type": "string",
+            "nullable": true,
+            "description": "Billing interval bought",
+            "example": "month"
+          },
+          "seats": {
+            "type": "number",
+            "nullable": true,
+            "description": "Total seats bought, including those the plan bundles",
+            "example": 10
+          },
+          "email": {
+            "type": "string",
+            "nullable": true,
+            "description": "Email Stripe collected. The subscription is attached to an account for this address, so it is the address the buyer must sign in with.",
+            "example": "alex@example.com"
+          },
+          "paid": {
+            "type": "boolean",
+            "description": "Whether the payment has settled. Delayed payment methods can complete a session while the charge is still pending.",
+            "example": true
+          }
+        },
+        "required": [
+          "paid"
         ]
       },
       "CreateTemplateDto": {
@@ -3470,12 +4213,12 @@
             "type": "integer"
           },
           "currentDraftVersionId": {
-            "type": "object",
+            "type": "string",
             "format": "uuid",
             "nullable": true
           },
           "currentPublishedVersionId": {
-            "type": "object",
+            "type": "string",
             "format": "uuid",
             "nullable": true
           },
@@ -3574,7 +4317,7 @@
         "properties": {
           "roleKey": {
             "type": "string",
-            "description": "Template role key this recipient fills (matches `version.content.recipients[].key`)",
+            "description": "Template role key this recipient fills (matches `version.content.recipients[].key`). Required for `signer`; ignored for `cc` and `viewer`, which hold no fields and are assigned a synthetic key.",
             "example": "buyer"
           },
           "name": {
@@ -3588,6 +4331,22 @@
             "description": "Recipient's email address for notifications",
             "example": "john.doe@example.com",
             "maxLength": 254
+          },
+          "type": {
+            "type": "string",
+            "description": "What this recipient is asked to do. `signer` (default) fills in fields and signs. `cc` receives a copy and never holds up the signing order. `viewer` must open and confirm they reviewed the document, and blocks the order until they do.",
+            "enum": [
+              "signer",
+              "cc",
+              "viewer"
+            ],
+            "default": "signer"
+          },
+          "order": {
+            "type": "number",
+            "description": "Position in the signing order. Signers default to the order set on their template role. For a `cc` this is also *when* the copy is sent: a position after every signer gets the certified final document, while a mid-order position gets the document as it stands at that step.",
+            "minimum": 1,
+            "example": 2
           }
         },
         "required": [
@@ -3616,6 +4375,12 @@
             "example": "Please review and sign this document at your earliest convenience.",
             "maxLength": 5000
           },
+          "emailSubject": {
+            "type": "string",
+            "description": "Replaces the generated subject line on the signing request, the awaiting-your-turn heads-up, and reminders (which stay prefixed with \"Reminder: \"). Completion, decline, void and expiry notices always use their standard wording. Leave unset for the generated subject.",
+            "example": "Please sign: Acme MSA",
+            "maxLength": 120
+          },
           "routingMode": {
             "type": "string",
             "description": "Signing-order mode. parallel (default): all recipients are invited at once. sequential: recipients are activated group-by-group by ascending order value — the next group is only activated once the current group has fully signed.",
@@ -3642,7 +4407,7 @@
             ]
           },
           "recipients": {
-            "description": "List of recipients who will sign the document",
+            "description": "Everyone involved with the document, in signing order — those who sign, those who must view and confirm, and those who just receive a copy. At least one must sign or view.",
             "minItems": 1,
             "type": "array",
             "items": {
@@ -3670,6 +4435,15 @@
             "type": "string",
             "description": "Role display name snapshot at send time"
           },
+          "type": {
+            "type": "string",
+            "enum": [
+              "signer",
+              "cc",
+              "viewer"
+            ],
+            "description": "What this recipient is asked to do. `signer` fills in fields and signs. `cc` receives a copy and never holds up the signing order. `viewer` must open and confirm they reviewed the document."
+          },
           "name": {
             "type": "string"
           },
@@ -3690,8 +4464,11 @@
             "enum": [
               "pending",
               "signed",
+              "acknowledged",
+              "copy_sent",
               "declined"
-            ]
+            ],
+            "description": "Each role reaches its own terminal status: a signer `signed`, a viewer `acknowledged`, a CC `copy_sent`. They are never interchangeable."
           },
           "signedAt": {
             "type": "integer",
@@ -3722,6 +4499,7 @@
           "id",
           "roleKey",
           "roleName",
+          "type",
           "name",
           "color",
           "order",
@@ -3779,6 +4557,10 @@
           "message": {
             "type": "string",
             "description": "Custom message sent with the signing request"
+          },
+          "emailSubject": {
+            "type": "string",
+            "description": "Sender's replacement subject for the signing request and reminders. Absent means the generated subject is used."
           },
           "createdAt": {
             "type": "integer",
@@ -3844,7 +4626,8 @@
                   "type": "string",
                   "enum": [
                     "NO_RECIPIENTS",
-                    "RECIPIENT_EMAIL_MISSING"
+                    "RECIPIENT_EMAIL_MISSING",
+                    "CC_EMAIL_MISSING"
                   ]
                 },
                 "message": {
@@ -3897,6 +4680,12 @@
             "example": "Please review and sign this document at your earliest convenience.",
             "maxLength": 5000
           },
+          "emailSubject": {
+            "type": "string",
+            "description": "Replaces the generated subject line on the signing request, the awaiting-your-turn heads-up, and reminders (which stay prefixed with \"Reminder: \"). Completion, decline, void and expiry notices always use their standard wording. Leave unset for the generated subject.",
+            "example": "Please sign: Acme MSA",
+            "maxLength": 120
+          },
           "routingMode": {
             "type": "string",
             "description": "Signing-order mode. parallel (default): all recipients are invited at once. sequential: recipients are activated group-by-group by ascending order value — the next group is only activated once the current group has fully signed.",
@@ -3923,7 +4712,7 @@
             ]
           },
           "recipients": {
-            "description": "List of recipients who will sign the document",
+            "description": "Everyone involved with the document, in signing order — those who sign, those who must view and confirm, and those who just receive a copy. At least one must sign or view.",
             "minItems": 1,
             "type": "array",
             "items": {
@@ -3957,7 +4746,7 @@
             "format": "uuid"
           },
           "documentRecipientId": {
-            "type": "object",
+            "type": "string",
             "format": "uuid",
             "nullable": true
           },
@@ -3967,34 +4756,35 @@
             "example": "signed"
           },
           "actorName": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "actorEmail": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "apiKeyId": {
-            "type": "object",
+            "type": "string",
             "format": "uuid",
             "nullable": true,
             "description": "API key that performed the action (when applicable)"
           },
           "apiKeyName": {
-            "type": "object",
+            "type": "string",
             "nullable": true,
             "description": "Human-readable name of the API key used (when applicable)"
           },
           "ipAddress": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "userAgent": {
-            "type": "object",
+            "type": "string",
             "nullable": true
           },
           "metadata": {
             "type": "object",
+            "additionalProperties": true,
             "nullable": true
           },
           "createdAt": {
@@ -4256,7 +5046,7 @@
             "description": "Count of consecutive delivery failures"
           },
           "disabledAt": {
-            "type": "object",
+            "type": "string",
             "format": "date-time",
             "nullable": true
           },
@@ -4334,7 +5124,7 @@
             "description": "Count of consecutive delivery failures"
           },
           "disabledAt": {
-            "type": "object",
+            "type": "string",
             "format": "date-time",
             "nullable": true
           },
@@ -4493,13 +5283,13 @@
             "example": "a1b2"
           },
           "lastUsedAt": {
-            "type": "object",
+            "type": "string",
             "format": "date-time",
             "nullable": true,
             "description": "When the key was last used to authenticate a request"
           },
           "expiresAt": {
-            "type": "object",
+            "type": "string",
             "format": "date-time",
             "nullable": true,
             "description": "When the key expires (null = never)"
@@ -4552,13 +5342,13 @@
             "example": "a1b2"
           },
           "lastUsedAt": {
-            "type": "object",
+            "type": "string",
             "format": "date-time",
             "nullable": true,
             "description": "When the key was last used to authenticate a request"
           },
           "expiresAt": {
-            "type": "object",
+            "type": "string",
             "format": "date-time",
             "nullable": true,
             "description": "When the key expires (null = never)"
@@ -4670,16 +5460,17 @@
             "type": "string"
           },
           "documentId": {
-            "type": "object",
+            "type": "string",
             "format": "uuid",
             "nullable": true
           },
           "data": {
             "type": "object",
+            "additionalProperties": true,
             "nullable": true
           },
           "readAt": {
-            "type": "object",
+            "type": "string",
             "format": "date-time",
             "nullable": true
           },
@@ -4711,6 +5502,147 @@
         "required": [
           "count"
         ]
+      },
+      "UserDemographicsDto": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Professional role"
+          },
+          "useCases": {
+            "description": "Document types the user plans to send",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "monthlyVolume": {
+            "type": "string",
+            "enum": [
+              "1-5",
+              "6-20",
+              "21-100",
+              "100+"
+            ]
+          },
+          "teamSize": {
+            "type": "string",
+            "enum": [
+              "just_me",
+              "2-10",
+              "11-50",
+              "51-200",
+              "200+"
+            ]
+          },
+          "referralSource": {
+            "type": "string",
+            "description": "How the user heard about Signvoy"
+          },
+          "previousTool": {
+            "type": "string",
+            "description": "Tool the user signs documents with today"
+          }
+        }
+      },
+      "UserProfileDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Clerk user id"
+          },
+          "email": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "Convenience join of firstName and lastName (\"first last\"), null when both are unset. Not stored — update the parts, not this.",
+            "readOnly": true
+          },
+          "firstName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastName": {
+            "type": "string",
+            "nullable": true
+          },
+          "imageUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Clerk avatar URL"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true
+          },
+          "demographics": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/UserDemographicsDto"
+              }
+            ]
+          },
+          "onboardingStep": {
+            "type": "number",
+            "description": "Furthest onboarding step reached"
+          },
+          "onboardingCompletedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "name",
+          "firstName",
+          "lastName",
+          "imageUrl",
+          "phone",
+          "demographics",
+          "onboardingStep",
+          "onboardingCompletedAt",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {
+          "demographics": {
+            "$ref": "#/components/schemas/UserDemographicsDto"
+          },
+          "phone": {
+            "type": "string",
+            "description": "Contact phone number (optional)"
+          },
+          "onboardingStep": {
+            "type": "number",
+            "description": "Furthest onboarding step the user has reached. Only ever moves forward.",
+            "minimum": 0,
+            "maximum": 20
+          },
+          "onboardingCompleted": {
+            "type": "boolean",
+            "description": "Set true to stamp onboarding as finished"
+          }
+        }
       },
       "CreateMcpGrantDto": {
         "type": "object",
