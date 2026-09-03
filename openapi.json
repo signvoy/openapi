@@ -3451,6 +3451,159 @@
         ]
       }
     },
+    "/v1/users/me/signatures": {
+      "get": {
+        "description": "Default first, then newest — the order the signing picker uses.",
+        "operationId": "UserSignatures_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UserSignatureDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "List the current user's saved signatures",
+        "tags": [
+          "Signatures"
+        ]
+      },
+      "post": {
+        "description": "Stores a signature for reuse. Up to 10 per user; the first one saved becomes the default.",
+        "operationId": "UserSignatures_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserSignatureDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSignatureDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The per-user signature limit is reached"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Save a signature",
+        "tags": [
+          "Signatures"
+        ]
+      }
+    },
+    "/v1/users/me/signatures/{id}": {
+      "patch": {
+        "description": "Promotes it to default, replaces its image, or both. `isDefault: false` is a no-op — a user who owns signatures always has exactly one default, so the way to move it is to promote another. Replacing the image leaves already-signed documents untouched, since the image is copied into each submission at signing time.",
+        "operationId": "UserSignatures_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserSignatureDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSignatureDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Signature not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Update a signature",
+        "tags": [
+          "Signatures"
+        ]
+      },
+      "delete": {
+        "description": "Deleting the default promotes the next most recent signature. Documents already signed with it are unaffected — the image is copied into each submission at signing time.",
+        "operationId": "UserSignatures_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Signature deleted"
+          },
+          "404": {
+            "description": "Signature not found"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Delete a signature",
+        "tags": [
+          "Signatures"
+        ]
+      }
+    },
     "/v1/mcp-grants": {
       "post": {
         "description": "Creates or un-revokes a grant so the specified Clerk OAuth client can access the MCP endpoint on behalf of the authenticated user. The clerkClientId is the client_id returned by Clerk's Dynamic Client Registration endpoint when an MCP client connects for the first time.",
@@ -3585,6 +3738,10 @@
     {
       "name": "Users",
       "description": "The signed-in user's own profile and onboarding progress — scoped to the user, not a workspace"
+    },
+    {
+      "name": "Signatures",
+      "description": "The signed-in user's reusable signature library — scoped to the user, not a workspace, so the same signatures are available wherever they sign"
     }
   ],
   "servers": [
@@ -5641,6 +5798,141 @@
           "onboardingCompleted": {
             "type": "boolean",
             "description": "Set true to stamp onboarding as finished"
+          }
+        }
+      },
+      "UserSignatureDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "draw",
+              "type"
+            ],
+            "description": "How the signature was produced"
+          },
+          "dataUrl": {
+            "type": "string",
+            "description": "The signature image as a base64 PNG data URL",
+            "example": "data:image/png;base64,iVBORw0KGgo..."
+          },
+          "typedName": {
+            "type": "string",
+            "nullable": true,
+            "description": "The name that was typed. Only set when source is 'type'."
+          },
+          "fontKey": {
+            "type": "string",
+            "nullable": true,
+            "description": "Font the name was rendered in, keyed to SIGNATURE_FONTS. Only set when source is 'type'."
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Offered first when signing. At most one per user."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "dataUrl",
+          "typedName",
+          "fontKey",
+          "isDefault",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "CreateUserSignatureDto": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "draw",
+              "type"
+            ],
+            "description": "How the signature was produced"
+          },
+          "dataUrl": {
+            "type": "string",
+            "description": "Base64 PNG data URL, up to 256 KB decoded",
+            "example": "data:image/png;base64,iVBORw0KGgo..."
+          },
+          "typedName": {
+            "type": "string",
+            "description": "The name that was typed. Required when source is 'type'."
+          },
+          "fontKey": {
+            "type": "string",
+            "enum": [
+              "caveat",
+              "dancing-script",
+              "sacramento",
+              "great-vibes",
+              "homemade-apple",
+              "allura",
+              "parisienne"
+            ],
+            "description": "Font the name was rendered in. Required when source is 'type'."
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Make this the default. The first signature a user saves becomes the default regardless."
+          }
+        },
+        "required": [
+          "source",
+          "dataUrl"
+        ]
+      },
+      "UpdateUserSignatureDto": {
+        "type": "object",
+        "properties": {
+          "isDefault": {
+            "type": "boolean",
+            "description": "Pass true to make this the default. Passing false is a no-op: a user always has a default while they have any signatures."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "draw",
+              "type"
+            ],
+            "description": "How the replacement image was produced. Required with dataUrl."
+          },
+          "dataUrl": {
+            "type": "string",
+            "description": "Replacement image as a base64 PNG data URL. Required with source."
+          },
+          "typedName": {
+            "type": "string",
+            "description": "The name that was typed. Required when source is 'type'."
+          },
+          "fontKey": {
+            "type": "string",
+            "enum": [
+              "caveat",
+              "dancing-script",
+              "sacramento",
+              "great-vibes",
+              "homemade-apple",
+              "allura",
+              "parisienne"
+            ],
+            "description": "Font the name was rendered in. Required when source is 'type'."
           }
         }
       },
