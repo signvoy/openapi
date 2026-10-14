@@ -3604,6 +3604,389 @@
         ]
       }
     },
+    "/v1/contacts": {
+      "get": {
+        "description": "Returns a page of the workspace address book, ordered with named contacts first. The address book is shared by every member of the workspace.",
+        "operationId": "Contacts_list",
+        "parameters": [
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "description": "Include archived contacts instead of live ones",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Case-insensitive substring matched against name, email and company",
+            "schema": {
+              "example": "acme",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max contacts to return",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Zero-based offset for pagination",
+            "schema": {
+              "minimum": 0,
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of contacts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactListDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List contacts",
+        "tags": [
+          "Contacts"
+        ]
+      },
+      "post": {
+        "description": "Email is the only required field. Contacts are also created automatically for every recipient whenever a document is sent, so this is for entries you want to curate ahead of time.",
+        "operationId": "Contacts_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateContactDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created contact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "A contact with this email already exists in the workspace"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create a contact",
+        "tags": [
+          "Contacts"
+        ]
+      }
+    },
+    "/v1/contacts/search": {
+      "get": {
+        "description": "Case-insensitive substring match on name and email, excluding archived contacts. Returns a lean projection intended for a typeahead; use `GET /contacts` for the full records. At most `limit` matches come back and there is no total or cursor, so a query with more matches than that is answered with the best of them and is meant to be narrowed rather than paged.",
+        "operationId": "Contacts_search",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "description": "Substring matched case-insensitively against name and email. An empty or whitespace-only value returns no results rather than the whole book.",
+            "schema": {
+              "example": "pri",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max suggestions to return",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching contacts, best match first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContactSuggestionDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Search contacts for a recipient picker",
+        "tags": [
+          "Contacts"
+        ]
+      }
+    },
+    "/v1/contacts/{id}": {
+      "get": {
+        "description": "Returns a single contact from the workspace address book. An id belonging to another workspace returns 404 rather than 403.",
+        "operationId": "Contacts_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Contact ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The contact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contact not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Get a contact",
+        "tags": [
+          "Contacts"
+        ]
+      },
+      "patch": {
+        "description": "Pass `archived: true` to hide the contact from the recipient picker and the default listing without deleting it, or `archived: false` to restore it. A nullable field set to `null` is cleared.",
+        "operationId": "Contacts_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Contact ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateContactDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated contact",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contact not found"
+          },
+          "409": {
+            "description": "Another contact in this workspace already has that email"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Update, archive or restore a contact",
+        "tags": [
+          "Contacts"
+        ]
+      },
+      "delete": {
+        "description": "Removes the row outright. Documents already sent to this person are unaffected — they carry their own copy of the name and email — so this is safe to use for an erasure request. Owners and admins only; members should archive instead.",
+        "operationId": "Contacts_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Contact ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Contact deleted"
+          },
+          "403": {
+            "description": "Not a workspace owner or admin"
+          },
+          "404": {
+            "description": "Contact not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Delete a contact permanently",
+        "tags": [
+          "Contacts"
+        ]
+      }
+    },
+    "/v1/contacts/{id}/documents": {
+      "get": {
+        "description": "The 50 most recent documents this contact was a recipient on. Members see only documents they own; owners and admins see every document in the workspace — the same visibility rule `GET /documents` applies.",
+        "operationId": "Contacts_listDocuments",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Contact ID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Documents this contact appears on",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContactDocumentDto"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contact not found"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List documents involving a contact",
+        "tags": [
+          "Contacts"
+        ]
+      }
+    },
     "/v1/mcp-grants": {
       "post": {
         "description": "Creates or un-revokes a grant so the specified Clerk OAuth client can access the MCP endpoint on behalf of the authenticated user. The clerkClientId is the client_id returned by Clerk's Dynamic Client Registration endpoint when an MCP client connects for the first time. A grant carries no workspace — each tool call names the workspace it acts on and is authorised against the user's membership of it.",
@@ -3742,6 +4125,10 @@
     {
       "name": "Signatures",
       "description": "The signed-in user's reusable signature library — scoped to the user, not a workspace, so the same signatures are available wherever they sign"
+    },
+    {
+      "name": "Contacts",
+      "description": "The workspace address book — shared by every member, filled automatically from the recipients of each document sent, and readable as a recipient picker"
     }
   ],
   "servers": [
@@ -5933,6 +6320,277 @@
               "parisienne"
             ],
             "description": "Font the name was rendered in. Required when source is 'type'."
+          }
+        }
+      },
+      "ContactDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Unique contact identifier"
+          },
+          "email": {
+            "type": "string",
+            "description": "Email address. The only required field on a contact.",
+            "example": "priya@acme.com"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "description": "Full name. Null for a contact captured from a send where the sender supplied only an address.",
+            "example": "Priya Raman"
+          },
+          "company": {
+            "type": "string",
+            "nullable": true,
+            "example": "Acme Inc."
+          },
+          "jobTitle": {
+            "type": "string",
+            "nullable": true,
+            "example": "Head of Legal"
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "example": "+1 555 0123"
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "auto",
+              "import"
+            ],
+            "description": "How the contact got here. `auto` means it was captured when a document was sent to this address."
+          },
+          "archivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the contact was archived. Archived contacts are hidden from the recipient picker and the default listing but keep their row."
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "Clerk user id of whoever first caused the contact to exist. Attribution only — the directory is readable by the whole workspace."
+          },
+          "createdByName": {
+            "type": "string",
+            "description": "Display name of that user, resolved from Clerk. Absent when it could not be resolved.",
+            "example": "Priya Raman"
+          },
+          "createdByImageUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Their Clerk avatar URL"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "source",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "ContactListDto": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContactDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "description": "Total matching contacts, ignoring limit and offset",
+            "example": 143
+          },
+          "hasMore": {
+            "type": "boolean",
+            "description": "Whether another page exists after this one",
+            "example": true
+          }
+        },
+        "required": [
+          "results",
+          "total",
+          "hasMore"
+        ]
+      },
+      "ContactSuggestionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": "string",
+            "example": "priya@acme.com"
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "example": "Priya Raman"
+          },
+          "company": {
+            "type": "string",
+            "nullable": true,
+            "example": "Acme Inc."
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ]
+      },
+      "CreateContactDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Email address. The only required field.",
+            "example": "priya@acme.com",
+            "maxLength": 254
+          },
+          "name": {
+            "type": "string",
+            "example": "Priya Raman",
+            "maxLength": 255
+          },
+          "company": {
+            "type": "string",
+            "example": "Acme Inc.",
+            "maxLength": 255
+          },
+          "jobTitle": {
+            "type": "string",
+            "example": "Head of Legal",
+            "maxLength": 255
+          },
+          "phone": {
+            "type": "string",
+            "example": "+1 555 0123",
+            "maxLength": 40
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "ContactDocumentDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "example": "Mutual NDA"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "sent",
+              "in_progress",
+              "completed",
+              "declined",
+              "voided",
+              "expired"
+            ]
+          },
+          "recipientType": {
+            "type": "string",
+            "enum": [
+              "signer",
+              "cc",
+              "viewer"
+            ],
+            "description": "What this person was asked to do on that document"
+          },
+          "recipientStatus": {
+            "type": "string",
+            "description": "Their own status on that document",
+            "example": "signed"
+          },
+          "sentAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "status",
+          "recipientType",
+          "recipientStatus"
+        ]
+      },
+      "UpdateContactDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "example": "priya@acme.com",
+            "maxLength": 254
+          },
+          "name": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "company": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "jobTitle": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 255
+          },
+          "phone": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "archived": {
+            "type": "boolean",
+            "description": "Archive or restore. Archiving hides the contact from the recipient picker and the default listing without deleting it."
           }
         }
       },
