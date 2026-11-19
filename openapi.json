@@ -601,6 +601,52 @@
         ]
       }
     },
+    "/v1/billing/checkout/{sessionId}": {
+      "get": {
+        "description": "Amount, currency, plan, and payment status of a Checkout Session this account started. The billing page reads it once after Stripe redirects back, to report the purchase to analytics.",
+        "operationId": "Billing_describeCheckout",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Checkout receipt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckoutReceiptDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not the workspace owner"
+          },
+          "404": {
+            "description": "Unknown checkout session"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Describe a completed checkout",
+        "tags": [
+          "Billing"
+        ]
+      }
+    },
     "/v1/billing/portal": {
       "post": {
         "description": "Creates a Stripe-hosted Customer Portal session for managing the payment method, downloading invoices, and cancelling. Plan and seat changes are deliberately not available there — use this API, which checks changes against actual workspace membership.",
@@ -4514,6 +4560,55 @@
           "url"
         ]
       },
+      "CheckoutReceiptDto": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "description": "Stripe Checkout Session id, used to de-duplicate the purchase",
+            "example": "cs_test_a1b2c3"
+          },
+          "value": {
+            "type": "number",
+            "nullable": true,
+            "description": "Amount charged, in major units (dollars, not cents)",
+            "example": 29
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO 4217 currency code, upper-case",
+            "example": "USD"
+          },
+          "plan": {
+            "type": "string",
+            "nullable": true,
+            "description": "Plan bought",
+            "example": "team"
+          },
+          "interval": {
+            "type": "string",
+            "nullable": true,
+            "description": "Billing interval bought",
+            "example": "month"
+          },
+          "seats": {
+            "type": "number",
+            "nullable": true,
+            "description": "Total seats bought, including those the plan bundles",
+            "example": 10
+          },
+          "paid": {
+            "type": "boolean",
+            "description": "Whether the payment has settled. Delayed payment methods can complete a session while the charge is still pending.",
+            "example": true
+          }
+        },
+        "required": [
+          "transactionId",
+          "paid"
+        ]
+      },
       "UpdateSeatsDto": {
         "type": "object",
         "properties": {
@@ -4566,6 +4661,23 @@
       "AnonymousCheckoutStatusDto": {
         "type": "object",
         "properties": {
+          "transactionId": {
+            "type": "string",
+            "description": "Stripe Checkout Session id, used to de-duplicate the purchase",
+            "example": "cs_test_a1b2c3"
+          },
+          "value": {
+            "type": "number",
+            "nullable": true,
+            "description": "Amount charged, in major units (dollars, not cents)",
+            "example": 29
+          },
+          "currency": {
+            "type": "string",
+            "nullable": true,
+            "description": "ISO 4217 currency code, upper-case",
+            "example": "USD"
+          },
           "plan": {
             "type": "string",
             "nullable": true,
@@ -4584,19 +4696,20 @@
             "description": "Total seats bought, including those the plan bundles",
             "example": 10
           },
+          "paid": {
+            "type": "boolean",
+            "description": "Whether the payment has settled. Delayed payment methods can complete a session while the charge is still pending.",
+            "example": true
+          },
           "email": {
             "type": "string",
             "nullable": true,
             "description": "Email Stripe collected. The subscription is attached to an account for this address, so it is the address the buyer must sign in with.",
             "example": "alex@example.com"
-          },
-          "paid": {
-            "type": "boolean",
-            "description": "Whether the payment has settled. Delayed payment methods can complete a session while the charge is still pending.",
-            "example": true
           }
         },
         "required": [
+          "transactionId",
           "paid"
         ]
       },
