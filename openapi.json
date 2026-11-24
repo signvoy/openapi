@@ -526,6 +526,163 @@
         ]
       }
     },
+    "/v1/workspaces/{id}/branding/{asset}": {
+      "get": {
+        "description": "Public. Serves the logo or favicon shown to recipients. Cached as immutable; clients version the URL with `?v=`.",
+        "operationId": "WorkspaceBranding_getAsset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "asset",
+            "required": true,
+            "in": "path",
+            "description": "Which branding image",
+            "schema": {
+              "enum": [
+                "logo",
+                "favicon"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image bytes"
+          },
+          "404": {
+            "description": "No image configured"
+          }
+        },
+        "summary": "Get a workspace branding image",
+        "tags": [
+          "Workspaces"
+        ]
+      },
+      "post": {
+        "description": "Replaces the logo (PNG, JPEG, WebP, SVG) or favicon (PNG, ICO, SVG). Up to 2 MB. Owner/admin only; requires a plan with custom branding.",
+        "operationId": "WorkspaceBranding_uploadAsset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "asset",
+            "required": true,
+            "in": "path",
+            "description": "Which branding image",
+            "schema": {
+              "enum": [
+                "logo",
+                "favicon"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Image stored; returns the workspace branding"
+          },
+          "402": {
+            "description": "Plan does not include custom branding"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Upload a workspace branding image",
+        "tags": [
+          "Workspaces"
+        ]
+      },
+      "delete": {
+        "description": "Owner/admin only.",
+        "operationId": "WorkspaceBranding_removeAsset",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Workspace UUID",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "asset",
+            "required": true,
+            "in": "path",
+            "description": "Which branding image",
+            "schema": {
+              "enum": [
+                "logo",
+                "favicon"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Image removed; returns the workspace branding"
+          },
+          "403": {
+            "description": "Forbidden - Insufficient permissions"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Remove a workspace branding image",
+        "tags": [
+          "Workspaces"
+        ]
+      }
+    },
     "/v1/billing": {
       "get": {
         "description": "Current plan, entitlements, seat and document usage, and the available upgrade prices. Readable by any workspace member so the UI can show why an action was blocked; only the owner can change anything.",
@@ -4243,6 +4400,19 @@
             "example": "updated-corp",
             "minLength": 2,
             "maxLength": 40
+          },
+          "brandName": {
+            "type": "string",
+            "description": "Name shown to recipients on signing pages in place of Signvoy. `null` clears it. Requires a plan with custom branding.",
+            "example": "Acme Inc.",
+            "maxLength": 60,
+            "nullable": true
+          },
+          "brandColor": {
+            "type": "string",
+            "description": "Brand color as lowercase `#rrggbb`. `null` clears it. Requires a plan with custom branding.",
+            "example": "#214e92",
+            "nullable": true
           }
         }
       },
@@ -5271,6 +5441,33 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DocumentRecipientDto"
+            }
+          },
+          "previewPins": {
+            "type": "array",
+            "description": "Positions (percent of page) of up to 8 fields on page 1 of the pinned template version, for list thumbnails. `recipientKey` matches `recipients[].roleKey`. Only returned by the list endpoint.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "recipientKey": {
+                  "type": "string"
+                },
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "recipientKey",
+                "x",
+                "y"
+              ]
             }
           },
           "sendBlockers": {
