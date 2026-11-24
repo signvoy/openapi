@@ -1003,6 +1003,157 @@
         ]
       }
     },
+    "/v1/users/me/notification-preferences": {
+      "get": {
+        "description": "Returns the catalog together with the effective value of every supported (type, channel) pair and where that value came from.",
+        "operationId": "NotificationPreferences_get",
+        "parameters": [
+          {
+            "name": "workspaceId",
+            "required": false,
+            "in": "query",
+            "description": "Resolve with this workspace's overrides applied. Omit for account-wide values.",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Called with an API key"
+          },
+          "404": {
+            "description": "Not a member of the workspace"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Get the current user's notification preferences",
+        "tags": [
+          "Notification preferences"
+        ]
+      },
+      "patch": {
+        "description": "Applies every change atomically at one scope. `enabled: null` resets a pair to its inherited value.",
+        "operationId": "NotificationPreferences_update",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePreferencesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreferencesResponseDto"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Called with an API key"
+          },
+          "404": {
+            "description": "Not a member of the workspace"
+          }
+        },
+        "security": [
+          {
+            "clerk-jwt": []
+          }
+        ],
+        "summary": "Change notification preferences",
+        "tags": [
+          "Notification preferences"
+        ]
+      }
+    },
+    "/v1/notification-preferences/unsubscribe/preview": {
+      "get": {
+        "operationId": "Unsubscribe_preview",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "description": "Signed unsubscribe token from the email",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnsubscribePreviewDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid unsubscribe link"
+          }
+        },
+        "summary": "Describe what an unsubscribe token would turn off",
+        "tags": [
+          "Notification preferences"
+        ]
+      }
+    },
+    "/v1/notification-preferences/unsubscribe": {
+      "post": {
+        "description": "RFC 8058 one-click endpoint. Idempotent; turns the notification off account-wide.",
+        "operationId": "Unsubscribe_unsubscribe",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "query",
+            "description": "Signed unsubscribe token from the email",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unsubscribed"
+          },
+          "400": {
+            "description": "Invalid unsubscribe link"
+          }
+        },
+        "summary": "Unsubscribe from one email notification",
+        "tags": [
+          "Notification preferences"
+        ]
+      }
+    },
     "/v1/templates/{templateId}/draft": {
       "get": {
         "description": "Returns the current draft version's content, or 200 with `null` if none exists.",
@@ -4314,6 +4465,10 @@
       "description": "In-app notifications — list, unread counts, and read-state management"
     },
     {
+      "name": "Notification preferences",
+      "description": "Which notifications the signed-in user receives on each channel, plus the token-authenticated one-click unsubscribe used by notification emails"
+    },
+    {
       "name": "MCP",
       "description": "Model Context Protocol grants — authorise and revoke AI agent access per workspace"
     },
@@ -4881,6 +5036,216 @@
         "required": [
           "transactionId",
           "paid"
+        ]
+      },
+      "NotificationDefinitionDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "document.recipient_signed",
+              "document.recipient_declined",
+              "document.completed",
+              "document.expired",
+              "workspace.invite"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "documents",
+              "workspace",
+              "account"
+            ]
+          },
+          "channels": {
+            "type": "object",
+            "description": "Supported channels mapped to their default",
+            "example": {
+              "email": {
+                "default": true
+              },
+              "in_app": {
+                "default": true
+              }
+            }
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "labelKey": {
+            "type": "string"
+          },
+          "descriptionKey": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "category",
+          "channels",
+          "labelKey",
+          "descriptionKey"
+        ]
+      },
+      "EffectivePreferenceDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "document.recipient_signed",
+              "document.recipient_declined",
+              "document.completed",
+              "document.expired",
+              "workspace.invite"
+            ]
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "in_app"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "default",
+              "account",
+              "workspace"
+            ]
+          },
+          "locked": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type",
+          "channel",
+          "enabled",
+          "source",
+          "locked"
+        ]
+      },
+      "PreferencesResponseDto": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "channels": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "email",
+                "in_app"
+              ]
+            }
+          },
+          "catalog": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NotificationDefinitionDto"
+            }
+          },
+          "preferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EffectivePreferenceDto"
+            }
+          }
+        },
+        "required": [
+          "workspaceId",
+          "channels",
+          "catalog",
+          "preferences"
+        ]
+      },
+      "PreferenceChangeDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "document.recipient_signed",
+              "document.recipient_declined",
+              "document.completed",
+              "document.expired",
+              "workspace.invite"
+            ]
+          },
+          "channel": {
+            "type": "string",
+            "enum": [
+              "email",
+              "in_app"
+            ]
+          },
+          "enabled": {
+            "type": "boolean",
+            "nullable": true,
+            "description": "`null` removes the stored preference so the inherited value applies again"
+          }
+        },
+        "required": [
+          "type",
+          "channel",
+          "enabled"
+        ]
+      },
+      "UpdatePreferencesDto": {
+        "type": "object",
+        "properties": {
+          "workspaceId": {
+            "type": "object",
+            "format": "uuid",
+            "nullable": true,
+            "description": "Workspace to override for. Omit or send null to change the account-wide value."
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PreferenceChangeDto"
+            }
+          }
+        },
+        "required": [
+          "changes"
+        ]
+      },
+      "UnsubscribePreviewDto": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "document.recipient_signed",
+              "document.recipient_declined",
+              "document.completed",
+              "document.expired",
+              "workspace.invite"
+            ]
+          },
+          "labelKey": {
+            "type": "string"
+          },
+          "alreadyUnsubscribed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "type",
+          "labelKey",
+          "alreadyUnsubscribed"
         ]
       },
       "CreateTemplateDto": {
