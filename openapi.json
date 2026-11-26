@@ -3420,6 +3420,578 @@
         ]
       }
     },
+    "/v1/integrations": {
+      "get": {
+        "description": "One entry per supported provider, in a fixed order, whether or not it is connected.",
+        "operationId": "Integrations_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntegrationProviderInfoDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List providers with their connection and bindings",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/oauth/complete": {
+      "post": {
+        "description": "Called by the web `/oauth/callback` page with the provider's `code` and `state`. The workspace comes from the signed state, not the `X-Workspace-Id` header. Signed-in users only; API keys get 403.",
+        "operationId": "Integrations_complete",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteIntegrationConnectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompleteIntegrationConnectResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "State expired or invalid, or the provider rejected the code"
+          },
+          "403": {
+            "description": "API key, different user, or not an owner/admin"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Finish connecting a provider",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/{provider}/connect": {
+      "post": {
+        "description": "Returns the provider consent URL. Signed-in users only; API keys get 403.",
+        "operationId": "Integrations_connect",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "enum": [
+                "google_drive",
+                "slack"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartIntegrationConnectDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartIntegrationConnectResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Provider not configured on this server"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Start connecting a provider",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/connections/{id}": {
+      "delete": {
+        "description": "Revokes the token at the provider (best-effort) and deletes the connection with its bindings and job history. Files already created at the provider stay.",
+        "operationId": "Integrations_disconnect",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Connection ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Disconnected"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Disconnect a provider",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/connections/{id}/slack/channels": {
+      "get": {
+        "description": "Public channels, plus private channels the bot can see. Private channels where the bot is not a member have `isMember: false` and cannot be posted to until it is invited.",
+        "operationId": "Integrations_listSlackChannels",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Slack connection ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SlackChannelDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List Slack channels the connection can post to",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/connections/{id}/google-drive/picker": {
+      "post": {
+        "description": "Returns a short-lived `drive.file` access token of the connected Google account plus the Picker key and app id, so the browser can let an admin choose a folder. Signed-in users only; API keys get 403.",
+        "operationId": "Integrations_createDrivePickerSession",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Google Drive connection ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleDrivePickerSessionDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not a Drive connection, access expired, or the picker is not configured"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Open the Google Drive folder picker",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/bindings": {
+      "post": {
+        "description": "Runs an action on the chosen events. `config` is validated against the action's schema.",
+        "operationId": "Integrations_createBinding",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateIntegrationBindingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationBindingDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Create a binding",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/bindings/{id}": {
+      "patch": {
+        "description": "Change events, config or the enabled flag. A new `config` is validated against the action's schema and applied at the provider (e.g. renaming the Drive folder) before saving.",
+        "operationId": "Integrations_updateBinding",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Binding ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateIntegrationBindingDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationBindingDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Update a binding",
+        "tags": [
+          "Integrations"
+        ]
+      },
+      "delete": {
+        "description": "Stops the action from running and deletes its job history. Nothing is removed at the provider.",
+        "operationId": "Integrations_deleteBinding",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Binding ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Delete a binding",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/bindings/{id}/test": {
+      "post": {
+        "description": "Runs the action's test (e.g. posts a test Slack message). Failures are reported in the body, not as an HTTP error.",
+        "operationId": "Integrations_testBinding",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Binding ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationTestResultDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Test a binding",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/jobs": {
+      "get": {
+        "description": "Newest first. Filter by `provider` or `bindingId`; `limit` up to 50 (default 25).",
+        "operationId": "Integrations_listJobs",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "google_drive",
+                "slack"
+              ]
+            }
+          },
+          {
+            "name": "bindingId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 50,
+              "default": 25,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IntegrationJobDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "List recent integration jobs",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
+    "/v1/integrations/jobs/{id}/retry": {
+      "post": {
+        "description": "Resets a failed, exhausted or skipped job and runs it again immediately.",
+        "operationId": "Integrations_retryJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Job ID",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntegrationJobDto"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Job is not in a retryable state"
+          }
+        },
+        "security": [
+          {
+            "workspace-id": []
+          },
+          {
+            "clerk-jwt": []
+          },
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Retry a job",
+        "tags": [
+          "Integrations"
+        ]
+      }
+    },
     "/v1/api-keys": {
       "post": {
         "description": "Creates a new secret API key scoped to this workspace. The plaintext key is returned **once** in this response and cannot be retrieved again — store it securely.",
@@ -4451,6 +5023,10 @@
     {
       "name": "Webhooks",
       "description": "Webhook endpoint management — register URLs, manage subscriptions, view delivery history"
+    },
+    {
+      "name": "Integrations",
+      "description": "Connect Google Drive and Slack, choose which document events trigger them, and review recent activity — owners and admins only"
     },
     {
       "name": "API Keys",
@@ -6456,6 +7032,488 @@
           "attempts",
           "lastAttemptAt",
           "createdAt"
+        ]
+      },
+      "IntegrationConnectionDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "provider": {
+            "type": "string",
+            "enum": [
+              "google_drive",
+              "slack"
+            ]
+          },
+          "externalAccountLabel": {
+            "type": "string",
+            "nullable": true,
+            "description": "Google account email, or Slack workspace name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "needs_reauth"
+            ]
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true
+          },
+          "lastErrorAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string",
+            "description": "User id of whoever connected"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "provider",
+          "externalAccountLabel",
+          "status",
+          "lastError",
+          "lastErrorAt",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "IntegrationBindingDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "connectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "google_drive.archive",
+              "slack.notify"
+            ]
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "document.sent",
+                "document.completed",
+                "document.declined",
+                "document.voided",
+                "document.expired",
+                "recipient.signed",
+                "recipient.declined"
+              ]
+            }
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "workspaceId",
+          "connectionId",
+          "action",
+          "events",
+          "config",
+          "enabled",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "IntegrationProviderInfoDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "google_drive",
+              "slack"
+            ]
+          },
+          "configured": {
+            "type": "boolean",
+            "description": "False when the server has no OAuth client credentials for this provider"
+          },
+          "connection": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IntegrationConnectionDto"
+              }
+            ]
+          },
+          "bindings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrationBindingDto"
+            }
+          },
+          "waitingJobCount": {
+            "type": "integer",
+            "description": "Jobs waiting on a reconnect"
+          },
+          "folderPicker": {
+            "type": "boolean",
+            "description": "Google Drive only: whether admins can choose an existing folder with the Google Picker"
+          }
+        },
+        "required": [
+          "provider",
+          "configured",
+          "connection",
+          "bindings",
+          "waitingJobCount",
+          "folderPicker"
+        ]
+      },
+      "CompleteIntegrationConnectDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Authorization code from the provider redirect"
+          },
+          "state": {
+            "type": "string",
+            "description": "The signed `state` from the provider redirect"
+          }
+        },
+        "required": [
+          "code",
+          "state"
+        ]
+      },
+      "CompleteIntegrationConnectResponseDto": {
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string",
+            "enum": [
+              "google_drive",
+              "slack"
+            ]
+          },
+          "workspaceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "returnTo": {
+            "type": "string"
+          },
+          "connection": {
+            "$ref": "#/components/schemas/IntegrationConnectionDto"
+          },
+          "createdBinding": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/IntegrationBindingDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "provider",
+          "workspaceId",
+          "returnTo",
+          "connection",
+          "createdBinding"
+        ]
+      },
+      "StartIntegrationConnectDto": {
+        "type": "object",
+        "properties": {
+          "returnTo": {
+            "type": "string",
+            "description": "App path to return to after the provider's consent screen. Must start with a single '/'. Defaults to the workspace's integrations settings.",
+            "example": "/w/3f1c…/settings/integrations"
+          }
+        }
+      },
+      "StartIntegrationConnectResponseDto": {
+        "type": "object",
+        "properties": {
+          "authorizeUrl": {
+            "type": "string",
+            "format": "uri",
+            "description": "Provider consent URL to redirect the browser to"
+          }
+        },
+        "required": [
+          "authorizeUrl"
+        ]
+      },
+      "SlackChannelDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "description": "Channel name without the leading '#'"
+          },
+          "isPrivate": {
+            "type": "boolean"
+          },
+          "isMember": {
+            "type": "boolean",
+            "description": "Whether the Signvoy bot is a member"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "isPrivate",
+          "isMember"
+        ]
+      },
+      "GoogleDrivePickerSessionDto": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "description": "Short-lived `drive.file` access token of the connected Google account"
+          },
+          "developerKey": {
+            "type": "string",
+            "description": "Browser API key for the Google Picker"
+          },
+          "appId": {
+            "type": "string",
+            "description": "Google Cloud project number"
+          }
+        },
+        "required": [
+          "accessToken",
+          "developerKey",
+          "appId"
+        ]
+      },
+      "CreateIntegrationBindingDto": {
+        "type": "object",
+        "properties": {
+          "connectionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "google_drive.archive",
+              "slack.notify"
+            ]
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "document.sent",
+                "document.completed",
+                "document.declined",
+                "document.voided",
+                "document.expired",
+                "recipient.signed",
+                "recipient.declined"
+              ]
+            }
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Action-specific configuration, validated against the action's schema"
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "connectionId",
+          "action",
+          "events",
+          "config"
+        ]
+      },
+      "UpdateIntegrationBindingDto": {
+        "type": "object",
+        "properties": {
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "document.sent",
+                "document.completed",
+                "document.declined",
+                "document.voided",
+                "document.expired",
+                "recipient.signed",
+                "recipient.declined"
+              ]
+            }
+          },
+          "config": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "IntegrationTestResultDto": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "ok",
+          "message",
+          "url"
+        ]
+      },
+      "IntegrationJobDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "bindingId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "google_drive.archive",
+              "slack.notify"
+            ]
+          },
+          "eventType": {
+            "type": "string",
+            "enum": [
+              "document.sent",
+              "document.completed",
+              "document.declined",
+              "document.voided",
+              "document.expired",
+              "recipient.signed",
+              "recipient.declined"
+            ]
+          },
+          "documentId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "documentName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "success",
+              "failed",
+              "exhausted",
+              "skipped"
+            ]
+          },
+          "attempts": {
+            "type": "integer"
+          },
+          "lastError": {
+            "type": "string",
+            "nullable": true
+          },
+          "resultUrl": {
+            "type": "string",
+            "nullable": true,
+            "description": "Link to the result: the Drive file, or the Slack message permalink"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "bindingId",
+          "action",
+          "eventType",
+          "documentId",
+          "documentName",
+          "status",
+          "attempts",
+          "lastError",
+          "resultUrl",
+          "createdAt",
+          "completedAt"
         ]
       },
       "CreateApiKeyDto": {
